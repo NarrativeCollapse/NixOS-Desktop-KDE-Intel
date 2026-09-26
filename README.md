@@ -84,7 +84,9 @@ statix/deadnix findings, or a configuration that doesn't evaluate.
    matches your original install release (mirror it in `home.nix`).
 3. **`hardware-configuration.nix`** → this is shitbox's real one. Only
    regenerate it (`sudo nixos-generate-config --show-hardware-config >
-   hardware-configuration.nix`) on a different machine or disk layout.
+   hardware-configuration.nix`) on a different machine or disk layout, and
+   then update the LUKS UUID that `modules/hardware.nix` reuses for
+   `allowDiscards`.
 4. Unfree allowlist in `modules/base.nix` if you add proprietary apps.
 
 ## Backups — one-time setup
