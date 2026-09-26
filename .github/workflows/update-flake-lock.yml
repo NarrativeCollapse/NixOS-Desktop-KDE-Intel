@@ -22,32 +22,51 @@ jobs:
       - uses: cachix/install-nix-action@v31
 
       - name: Update inputs
-        run: nix flake update 2>&1 | tee update.log
+        id: update
+        run: |
+          nix flake update 2>&1 | tee update.log
+          if git diff --quiet flake.lock; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # A lock update changes the built system, so it gets a new config
+      # version (flake.nix, README "Current version" and Versions row).
+      - name: Bump version
+        id: bump
+        if: steps.update.outputs.changed == 'true'
+        run: echo "version=$(python3 .github/workflows/bump-version.py update.log)" >> "$GITHUB_OUTPUT"
 
       # Pull requests opened with the default token don't trigger other
       # workflows, so the update is checked and built here instead.
       - name: Check and build the updated system
+        if: steps.update.outputs.changed == 'true'
         run: |
           nix flake check --print-build-logs
           nix build --print-build-logs --no-link .#nixosConfigurations.shitbox.config.system.build.toplevel
 
       - name: Summarize changes
         id: summary
+        if: steps.update.outputs.changed == 'true'
         run: |
           {
             echo 'body<<EOF'
-            echo 'Weekly `nix flake update`. `nix flake check` and a full system build passed on the updated lock.'
+            echo "Weekly \`nix flake update\`, as ${{ steps.bump.outputs.version }}. \`nix flake check\` and a full system build passed on the updated lock."
             echo
             echo '```'
-            grep -E "Updated input|→|'github:" update.log || echo "(no input changes)"
+            grep -E "Updated input|→|'github:" update.log
             echo '```'
             echo
-            echo 'Before merging: bump `version` in flake.nix and the README (see Versions in README.md).'
+            echo "After merging: \`git pull && rebuild\` on the laptop, and tag the merge commit ${{ steps.bump.outputs.version }}."
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
-          rm update.log
+
+      - name: Clean up
+        run: rm -f update.log
 
       - uses: peter-evans/create-pull-request@v7
+        if: steps.update.outputs.changed == 'true'
         with:
           branch: update-flake-lock
           commit-message: "chore: update flake.lock"
