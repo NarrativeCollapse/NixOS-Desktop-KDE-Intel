@@ -104,10 +104,39 @@ Manager declares all of it. Adapted from Bazzite (Apache-2.0).
   Distrobox doesn't share `/nix/store` with its boxes, so your Home Manager
   shell config (and the badge) won't load inside them unless you share it.
 
-The icons need a Nerd Font in the terminal. JetBrains Mono Nerd Font is
-installed; in Konsole pick it under Settings → Edit Current Profile →
-Appearance. To drop the whole setup, remove the `./bling.nix` import at the
-top of `home/austin/home.nix`.
+The icons come from JetBrains Mono Nerd Font, which is installed. Konsole
+finds them through font fallback even with its default Hack font; for icons
+sized to the terminal grid, pick JetBrainsMono Nerd Font Mono under
+Settings → Edit Current Profile → Appearance. To drop the whole setup,
+remove the `./bling.nix` import at the top of `home/austin/home.nix`.
+
+### Emoji and icons
+
+Color emoji come from Noto Color Emoji. With this config they render in
+GTK apps, KDE/Qt apps, Konsole, and LibreWolf, and the Flatpak module
+exposes the system fonts (emoji included) to Flatpak apps. If emoji look
+wrong somewhere:
+
+- **Text console** (Ctrl+Alt+F3 or before login): the Linux console can't
+  draw emoji or Nerd Font icons at all.
+- **Black-and-white emoji in one app:** apps that don't handle emoji
+  themselves (xterm, some older or Java/Electron apps) get monochrome emoji
+  from DejaVu Sans or Noto Sans Symbols 2 first. Appending Noto Color Emoji
+  to the default fonts in `modules/desktop.nix` fixes that, at the cost of a
+  few symbols such as ♥ and ✔ also turning into color emoji:
+
+  ```nix
+  fonts.fontconfig.defaultFonts = {
+    serif = lib.mkAfter [ "Noto Color Emoji" ];
+    sansSerif = lib.mkAfter [ "Noto Color Emoji" ];
+    monospace = lib.mkAfter [ "Noto Color Emoji" ];
+  };
+  ```
+
+  `mkAfter` matters: Plasma sets these lists too, and the emoji font must
+  come after the text fonts or it would take over digits and `#`.
+- **Missing in the banner, prompt, or fastfetch:** rebuild (`rebuild`) and
+  open a new terminal.
 
 ## Personalize
 
