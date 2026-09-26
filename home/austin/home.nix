@@ -6,6 +6,9 @@
 }:
 
 {
+  # Bazzite-style MOTD, fastfetch, and CLI tools (eza, atuin, zoxide, ...).
+  imports = [ ./bling.nix ];
+
   home.username = "austin";
   home.homeDirectory = "/home/austin";
 
@@ -37,11 +40,8 @@
       extended = true;
     };
 
+    # ls/ll/la come from programs.eza in bling.nix.
     shellAliases = {
-      ll = "ls -alF";
-      la = "ls -A";
-      l = "ls -CF";
-
       # Gaming helper: MangoHud overlay + GameMode wrapping Steam.
       steam-hud = "MANGOHUD=1 gamemoderun steam";
 
@@ -61,6 +61,7 @@
       command_timeout = 1000;
 
       format = lib.concatStrings [
+        "$container"
         "$directory"
         "$git_branch"
         "$git_status"
@@ -175,7 +176,6 @@
 
   home.packages = with pkgs; [
     jq
-    fastfetch
     btop
     mangohud
     wl-clipboard # Wayland clipboard backend for nvim's clipboard=unnamedplus

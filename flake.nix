@@ -77,6 +77,10 @@
         modules = [
           ./hosts/shitbox/configuration.nix
 
+          # Git commit the system was built from (with -dirty for uncommitted
+          # changes); shown by `nixos-version --configuration-revision`.
+          { system.configurationRevision = self.rev or self.dirtyRev or null; }
+
           home-manager.nixosModules.home-manager
           {
             home-manager = {
