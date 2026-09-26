@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ pkgs, ... }:
 
 {
   ################################
@@ -10,7 +10,12 @@
     description = "Austin";
     # Removed the "podman" supplementary group: rootless podman doesn't use a
     # named group like that and it would error if the group doesn't exist.
-    extraGroups = [ "wheel" "networkmanager" "video" "audio" ];
+    extraGroups = [
+      "wheel"
+      "networkmanager"
+      "video"
+      "audio"
+    ];
     shell = pkgs.zsh;
   };
 

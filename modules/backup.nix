@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ pkgs, ... }:
 
 {
   ################################
@@ -51,8 +51,8 @@
       "/home/austin/.steam"
       "/home/austin/.local/share/Trash"
       "/home/austin/.local/share/containers" # podman images/layers
-      "/home/austin/.local/share/baloo"      # KDE file indexer
-      "/home/austin/.var/app/*/cache"        # flatpak app caches
+      "/home/austin/.local/share/baloo" # KDE file indexer
+      "/home/austin/.var/app/*/cache" # flatpak app caches
       "/home/austin/.npm"
       "/home/austin/.cargo"
       "/home/austin/**/node_modules"
@@ -61,7 +61,7 @@
 
     timerConfig = {
       OnCalendar = "daily";
-      Persistent = true;          # run a missed backup at next boot
+      Persistent = true; # run a missed backup at next boot
       RandomizedDelaySec = "15m";
     };
 

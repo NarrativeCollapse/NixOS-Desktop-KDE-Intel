@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ lib, ... }:
 
 {
   ################################
@@ -7,7 +7,10 @@
 
   nix = {
     settings = {
-      experimental-features = [ "nix-command" "flakes" ];
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
       # Deduplicate the store automatically on every build.
       auto-optimise-store = true;
     };
@@ -65,16 +68,18 @@
     #  Whenever you add a new unfree package (e.g. proprietary app),
     #  you must add its name here or builds will fail with an
     #  "unfree license" error.
-    allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
-      "steam"
-      "steam-original"
-      "steam-runtime"
-      "steam-unwrapped"
-      "discord"
-      "vscode"
-      "google-chrome"
-      "mullvad-vpn"
-    ];
+    allowUnfreePredicate =
+      pkg:
+      builtins.elem (lib.getName pkg) [
+        "steam"
+        "steam-original"
+        "steam-runtime"
+        "steam-unwrapped"
+        "discord"
+        "vscode"
+        "google-chrome"
+        "mullvad-vpn"
+      ];
   };
 
   ################################
