@@ -48,24 +48,24 @@
   # Flatpak + Flathub
   ################################
 
-  services.flatpak.enable = true;
-
-  systemd.services.flatpak-repo = {
-    description = "Ensure Flathub remote exists";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
-
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
+  # Managed by nix-flatpak (flake input): the Flathub remote and the apps
+  # listed below are installed by flatpak-managed-install.service at boot and
+  # after each rebuild, retried with backoff while offline.
+  services.flatpak = {
+    enable = true;
+    # Flathub is the default remote. Add apps by ID, e.g.
+    #   "com.discordapp.Discord"
+    #   { appId = "org.mozilla.firefox"; origin = "flathub"; }
+    packages = [ ];
+    # Leave apps installed by hand (Discover, `flatpak install`) alone. Set to
+    # true once everything you want is listed above to make this list the
+    # source of truth, like the Brewfile.
+    uninstallUnmanaged = false;
+    update.auto = {
+      enable = true;
+      onCalendar = "weekly";
     };
-
-    path = [ pkgs.flatpak ];
-    script = ''
-      flatpak remote-add --if-not-exists flathub \
-        https://flathub.org/repo/flathub.flatpakrepo
-    '';
+    restartOnFailure.exponentialBackoff.enable = true;
   };
 
   ################################

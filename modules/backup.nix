@@ -103,6 +103,9 @@ in
     };
     # Runs only when backup, prune and check all succeeded.
     serviceConfig.ExecStartPost = [ "${pkgs.coreutils}/bin/touch ${stamp}" ];
+    # A run that starts and fails (full drive, wrong password, corrupt repo)
+    # raises a desktop notification; see modules/notify-failure.nix.
+    onFailure = [ "notify-failure@%n.service" ];
   };
 
   # Because the job skips silently, it could stop running for months unseen.

@@ -4,11 +4,12 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v21** (git tag `v21`). See [Versions](#versions).
+**Current version: v22** (git tag `v22`). See [Versions](#versions).
 
 ## What's in it
 
-- **Desktop:** Plasma 6 on SDDM (Wayland), PipeWire, Flatpak with Flathub,
+- **Desktop:** Plasma 6 on SDDM (Wayland), PipeWire, declarative Flatpak
+  apps from Flathub, Plasma/Konsole settings in the config (plasma-manager),
   Bluetooth via Plasma's BlueDevil, printing, Noto + JetBrains Mono Nerd Font.
 - **Hardware:** systemd-boot with the boot-menu editor locked, systemd
   initrd, LUKS with TRIM passed through to the SSD, zram swap,
@@ -49,9 +50,11 @@ modules/
   gaming.nix                     Steam, gamescope, GameMode, xpadneo
   shell.nix                      user, sudo, podman, system packages, zsh
   backup.nix                     restic job for /home (needs one-time setup)
-  homebrew.nix                   Homebrew install, PATH, daily `brew bundle` of /Brewfile
+  homebrew.nix                   Homebrew install, PATH, completions, daily `brew bundle`
+  notify-failure.nix             desktop notification when a background job fails
 home/austin/home.nix             zsh, starship, git, neovim, mangohud
 home/austin/bling.nix            Bazzite-style MOTD, fastfetch, CLI tools + aliases
+home/austin/plasma.nix           Plasma/KDE settings via plasma-manager (Konsole profile)
 ```
 
 ## Install
@@ -114,11 +117,11 @@ Manager declares all of it. Adapted from Bazzite (Apache-2.0).
   Distrobox doesn't share `/nix/store` with its boxes, so your Home Manager
   shell config (and the badge) won't load inside them unless you share it.
 
-The icons come from JetBrains Mono Nerd Font, which is installed. Konsole
-finds them through font fallback even with its default Hack font; for icons
-sized to the terminal grid, pick JetBrainsMono Nerd Font Mono under
-Settings → Edit Current Profile → Appearance. To drop the whole setup,
-remove the `./bling.nix` import at the top of `home/austin/home.nix`.
+The icons come from JetBrains Mono Nerd Font. Konsole's default profile is
+set by the config to "NixOS", which uses JetBrainsMono Nerd Font Mono so
+icons fit the terminal grid (see [Plasma settings](#plasma-settings)). To
+drop the whole setup, remove the `./bling.nix` import at the top of
+`home/austin/home.nix`.
 
 ### Emoji and icons
 
@@ -223,6 +226,11 @@ successful run (backup, prune, and check) touches
 - Test it: `systemctl --user start backup-reminder`.
 - Silence it until the next login: `systemctl --user stop backup-reminder.timer`.
 
+A run that does start but fails (full drive, wrong password, corrupt
+repository) also raises a critical notification right away, naming the
+command to see the logs (`journalctl -u restic-backups-home`). See
+[Failure alerts](#failure-alerts).
+
 ## Homebrew
 
 A few command-line tools come from Homebrew instead of Nix, so they update
@@ -254,6 +262,12 @@ the main reason: it breaks whenever video sites change.
 - `programs.nix-ld` is enabled because brew's prebuilt binaries expect the
   standard Linux loader at `/lib64`, which NixOS doesn't have otherwise.
 - Analytics are off (`HOMEBREW_NO_ANALYTICS=1`).
+- With no network the run is skipped quietly until the next one; a run that
+  fails while online raises a desktop notification
+  ([Failure alerts](#failure-alerts)).
+- Tab completion works for brew and its tools (`gh <Tab>`, `rg --<Tab>`):
+  brew's zsh completion directory is added before zsh initializes
+  completions.
 
 **Using it:**
 
@@ -267,8 +281,62 @@ the main reason: it breaks whenever video sites change.
 **Trade-offs to know:** brew-installed tools aren't covered by NixOS
 rollbacks or CI, and a bad upstream release reaches you the next day. To
 move a tool back to Nix, delete it from the Brewfile and add it to
-`home.packages` in `home/austin/bling.nix`. Shell tab completions for brew
-tools aren't wired up.
+`home.packages` in `home/austin/bling.nix`.
+
+## Flatpak apps
+
+Flatpak apps are declared in `modules/desktop.nix` with
+[nix-flatpak](https://github.com/gmodena/nix-flatpak), the Flatpak
+counterpart of the Brewfile:
+
+```nix
+services.flatpak.packages = [
+  "com.discordapp.Discord"
+  { appId = "org.mozilla.firefox"; origin = "flathub"; }
+];
+```
+
+- Flathub is configured automatically. Listed apps are installed at boot, and
+  after a rebuild that changes the list, by `flatpak-managed-install.service`,
+  which retries with a growing delay while offline.
+- Listed apps are updated weekly. Apps installed by hand keep updating the
+  usual way (Discover or `flatpak update`).
+- The list starts empty, and `uninstallUnmanaged = false` leaves apps you
+  installed by hand (Discover, `flatpak install`) alone. Once every app you
+  want is listed, set it to `true` to make the list authoritative; unlisted
+  apps are then removed.
+- List what's installed now, to copy into the config:
+  `flatpak list --app --columns=application`.
+
+## Plasma settings
+
+`home/austin/plasma.nix` manages Plasma and KDE app settings with
+[plasma-manager](https://github.com/nix-community/plasma-manager). It only
+writes the settings declared there; anything else you change in System
+Settings is left alone.
+
+Currently it sets up one thing: a Konsole profile named "NixOS" (Breeze
+colors, JetBrainsMono Nerd Font Mono 11), made Konsole's default. It also
+explicitly writes nothing to KRunner's web-shortcut settings, which
+plasma-manager would otherwise reset.
+
+To bring more of your desktop (panels, theme, shortcuts, power settings)
+into the config, run `nix run github:nix-community/plasma-manager`. It
+prints your current Plasma settings as Nix; copy the parts you want into
+`plasma.nix` and rebuild. Panels are all-or-nothing: once declared, the
+config replaces your whole panel layout on login, so capture it first.
+
+## Failure alerts
+
+`modules/notify-failure.nix` provides `notify-failure@`, which background
+jobs use to raise a critical desktop notification when they fail, with the
+`journalctl` command that shows why. It's attached to:
+
+- `restic-backups-home` (system job; the alert goes to your session if
+  you're logged in)
+- `brew-bundle` (user job)
+
+To attach it to another service: `onFailure = [ "notify-failure@%n.service" ];`.
 
 ## CI
 
@@ -315,7 +383,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v21** | Homebrew for fast-moving standalone CLI tools (yt-dlp, gh, glab, ripgrep, fd, bat, jq, yq, television, dysk, trash-cli, tealdeer, shellcheck, stress-ng), listed in `/Brewfile` and applied daily by a user timer; those tools were removed from the Nix config. Adds nix-ld so brew's prebuilt binaries run. |
+| **v22** | Desktop alerts when the backup or Homebrew job fails (brew-bundle now skips quietly offline instead of retrying forever); tab completion for brew tools; Flatpak apps declared with nix-flatpak (weekly updates, retries offline) replacing the Flathub setup service; plasma-manager with a Nerd Font Konsole profile as the default. |
+| v21 | Homebrew for fast-moving standalone CLI tools (yt-dlp, gh, glab, ripgrep, fd, bat, jq, yq, television, dysk, trash-cli, tealdeer, shellcheck, stress-ng), listed in `/Brewfile` and applied daily by a user timer; those tools were removed from the Nix config. Adds nix-ld so brew's prebuilt binaries run. |
 | v20 | Desktop warning when backups are more than 7 days old or never ran; GitHub Actions that check and build every push and open a tested weekly `flake.lock` update PR; the config version shows in the boot menu, welcome banner and fastfetch, and a check keeps the README in sync. |
 | v19 | Bazzite-style terminal (`home/austin/bling.nix`): welcome banner with `toggle-motd`, branded fastfetch, eza/atuin/zoxide/direnv and the rest of Bazzite's CLI tools; the system records the git commit it was built from. |
 | v18 | Review fixes: flake actually locked to NixOS 26.05 (it was building 25.11), real lint/format checks, all 26.05 deprecation warnings fixed, nh for rebuilds and 14-day cleanup, Intel hardware video decode, SSD TRIM through LUKS, working Neovim plugins, Steam dedicated-server port closed, Proton saves included in backups with a check after each run. |

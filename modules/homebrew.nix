@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 let
   prefix = "/home/linuxbrew/.linuxbrew";
@@ -25,6 +25,12 @@ in
   environment.extraInit = ''
     export PATH="$PATH:${prefix}/bin:${prefix}/sbin"
   '';
+  # Tab completion for brew and its formulas (gh, rg, fd, ...): add brew's
+  # zsh completion directory before Home Manager's zsh runs compinit.
+  home-manager.users.austin.programs.zsh.initContent = lib.mkOrder 550 ''
+    fpath+=(${prefix}/share/zsh/site-functions)
+  '';
+
   environment.variables = {
     HOMEBREW_PREFIX = prefix;
     HOMEBREW_CELLAR = "${prefix}/Cellar";
@@ -39,12 +45,10 @@ in
   systemd.user.services.brew-bundle = {
     description = "Apply the Brewfile from the NixOS config";
     unitConfig.ConditionUser = "austin";
-    serviceConfig = {
-      Type = "oneshot";
-      # Usually no network yet, or a transient download error.
-      Restart = "on-failure";
-      RestartSec = "15min";
-    };
+    serviceConfig.Type = "oneshot";
+    # Offline runs are skipped (see the script), so a failure here is real:
+    # raise a desktop notification (modules/notify-failure.nix).
+    onFailure = [ "notify-failure@%n.service" ];
     environment = {
       HOMEBREW_NO_ANALYTICS = "1";
       HOMEBREW_NO_ENV_HINTS = "1";
@@ -67,12 +71,20 @@ in
       xz
     ];
     script = ''
-      if [ ! -x ${prefix}/bin/brew ]; then
-        echo "Installing Homebrew into ${prefix}"
-        mkdir -p ${prefix}/bin
-        git clone https://github.com/Homebrew/brew ${prefix}/Homebrew
-        ln -sfn ../Homebrew/bin/brew ${prefix}/bin/brew
+      if ! curl -fsSI --max-time 15 -o /dev/null https://github.com; then
+        echo "No network; skipping until the next run."
+        exit 0
       fi
+      if [ ! -d ${prefix}/Homebrew ]; then
+        echo "Installing Homebrew into ${prefix}"
+        # Clone beside the final path so an interrupted clone isn't mistaken
+        # for an installed Homebrew on the next run.
+        rm -rf ${prefix}/Homebrew.partial
+        git clone https://github.com/Homebrew/brew ${prefix}/Homebrew.partial
+        mv ${prefix}/Homebrew.partial ${prefix}/Homebrew
+      fi
+      mkdir -p ${prefix}/bin
+      ln -sfn ../Homebrew/bin/brew ${prefix}/bin/brew
       brew=${prefix}/bin/brew
       "$brew" bundle install --file=${brewfile}
       "$brew" bundle cleanup --force --file=${brewfile}
