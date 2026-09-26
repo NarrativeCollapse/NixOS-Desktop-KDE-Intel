@@ -6,13 +6,17 @@
 { lib, pkgs, ... }:
 
 let
-  # "generation 42 · config 1a2b3c4", shown by the MOTD and fastfetch.
+  # "v20 · generation 42 · config 1a2b3c4", shown by the MOTD and fastfetch.
+  # The version comes from system.nixos.tags, which ends up in the name of
+  # the running system (nixos-system-shitbox-v20-26.05...).
   sysinfo = pkgs.writeShellApplication {
     name = "nixos-system-info";
     text = ''
+      ver=$(readlink /run/current-system 2>/dev/null | grep -o -- '-v[0-9]\+-' | tr -d - || true)
       gen=$(readlink /nix/var/nix/profiles/system 2>/dev/null | sed -n 's/^system-\([0-9]*\)-link$/\1/p' || true)
       rev=$(nixos-version --configuration-revision 2>/dev/null || true)
       out="generation ''${gen:-?}"
+      if [ -n "$ver" ]; then out="$ver · $out"; fi
       if [ -n "$rev" ]; then
         short=''${rev:0:7}
         if [[ $rev == *-dirty ]]; then short="$short-dirty"; fi

@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v19** (git tag `v19`). See [Versions](#versions).
+**Current version: v20** (git tag `v20`). See [Versions](#versions).
 
 ## What's in it
 
@@ -25,14 +25,20 @@ Plasma 6.
   [Terminal](#terminal-bazzite-style)), Neovim (treesitter, telescope,
   gitsigns), git, Podman (Docker-compatible) + distrobox, LibreWolf.
 - **Maintenance:** nh for rebuilds and weekly cleanup (keeps 14 days and at
-  least 5 generations), weekly store deduplication, and daily restic backups
-  of `/home` (needs the one-time setup below).
+  least 5 generations), weekly store deduplication, daily restic backups of
+  `/home` (needs the one-time setup below) with a desktop warning when they
+  go stale, and GitHub Actions that build every push and propose weekly
+  updates (see [CI](#ci)).
 
 ## Layout
 
 ```
-flake.nix                        inputs, HM wiring, checks, devShell
+flake.nix                        inputs, config version, HM wiring, checks, devShell
 statix.toml                      statix lint config
+CLAUDE.md                        rules for AI-assisted changes (checks, versioning)
+.github/workflows/
+  check.yml                      CI: nix flake check + full system build
+  update-flake-lock.yml          weekly flake.lock update pull request
 hosts/shitbox/configuration.nix  host: hostname + stateVersion + imports
 hardware-configuration.nix       generated; LUKS + ext4 root + EFI boot
 modules/
@@ -70,8 +76,10 @@ sudo nixos-rebuild switch --flake .#shitbox
 | Lint + evaluate | `nix flake check` |
 | Steam with MangoHud + GameMode | `steam-hud` (toggle the overlay with Right Shift + F12) |
 | Which commit is running? | `nixos-version --configuration-revision` |
+| Which config version is running? | Shown in the welcome banner, `fastfetch`, and the boot menu entry (e.g. `v20-26.05…`) |
 
-`nix flake check` fails on unformatted files, statix/deadnix findings, or a
+`nix flake check` fails on unformatted files, statix/deadnix findings, a
+README whose "Current version" doesn't match `version` in `flake.nix`, or a
 configuration that doesn't evaluate. `hardware-configuration.nix` is exempt
 from formatting and linting because regenerating it would undo any changes.
 
@@ -199,6 +207,37 @@ The restic job skips silently until both steps are done (by design):
    failed `restic-backups-home` unit. For a deeper check that re-reads a
    sample of the data: `restic-home check --read-data-subset=5%`.
 
+### Stale-backup warning
+
+Because the job skips silently whenever the drive isn't mounted, a desktop
+notification warns you instead: shortly after login and once a day, if the
+last successful backup is more than 7 days old, or if there has never been
+one (so it also reminds you to finish the setup above). Each fully
+successful run (backup, prune, and check) touches
+`/var/lib/restic-home-last-success`, which is what the warning reads.
+
+- Change the threshold with `staleDays` at the top of `modules/backup.nix`.
+- Test it: `systemctl --user start backup-reminder`.
+- Silence it until the next login: `systemctl --user stop backup-reminder.timer`.
+
+## CI
+
+Two GitHub Actions workflows live in `.github/workflows/`:
+
+- **Check** (every push to `main` and every pull request): runs
+  `nix flake check` and builds the whole system, so a package that fails to
+  build shows up on GitHub before you rebuild the laptop. Results are on the
+  repository's Actions tab.
+- **Update flake.lock** (Mondays, or run it by hand from the Actions tab):
+  runs `nix flake update`, checks and builds the result, and only then opens
+  a pull request listing what changed. Merging it counts as a config change,
+  so bump the version first (the PR description reminds you).
+
+One-time GitHub setting for the update workflow: Settings → Actions →
+General → Workflow permissions → tick **Allow GitHub Actions to create and
+approve pull requests**. Without it the workflow runs but can't open the
+pull request.
+
 ## Optional extras (commented out in-tree)
 
 Each lives next to the config it would change, with the reasoning in
@@ -219,8 +258,14 @@ The version goes up by one whenever a change affects the built system
 lint config or comments alone don't bump it. Each version has a matching
 git tag (`git checkout v18` to see it), and git history has the detail.
 
+The version is set once, as `version` in `flake.nix`. It's added to the
+system label, so it appears in the boot menu, the welcome banner and
+fastfetch, and `nix flake check` fails if the "Current version" line at the
+top of this README doesn't match it.
+
 | Version | Highlights |
 | --- | --- |
-| **v19** | Bazzite-style terminal (`home/austin/bling.nix`): welcome banner with `toggle-motd`, branded fastfetch, eza/atuin/zoxide/direnv and the rest of Bazzite's CLI tools; the system records the git commit it was built from. |
+| **v20** | Desktop warning when backups are more than 7 days old or never ran; GitHub Actions that check and build every push and open a tested weekly `flake.lock` update PR; the config version shows in the boot menu, welcome banner and fastfetch, and a check keeps the README in sync. |
+| v19 | Bazzite-style terminal (`home/austin/bling.nix`): welcome banner with `toggle-motd`, branded fastfetch, eza/atuin/zoxide/direnv and the rest of Bazzite's CLI tools; the system records the git commit it was built from. |
 | v18 | Review fixes: flake actually locked to NixOS 26.05 (it was building 25.11), real lint/format checks, all 26.05 deprecation warnings fixed, nh for rebuilds and 14-day cleanup, Intel hardware video decode, SSD TRIM through LUKS, working Neovim plugins, Steam dedicated-server port closed, Proton saves included in backups with a check after each run. |
 | v17 | Last pre-git release, imported as-is. Its changelog (and v15–v16's) is in the README of that commit. |

@@ -1,5 +1,10 @@
 { pkgs, ... }:
 
+let
+  # Touched after every successful backup; read by backup-reminder below.
+  stamp = "/var/lib/restic-home-last-success";
+  staleDays = 7;
+in
 {
   ################################
   # Backups: restic for /home
@@ -89,11 +94,45 @@
     runCheck = true;
   };
 
-  # Skip quietly (no failed unit) when the drive isn't attached or setup
-  # hasn't been done yet.
-  systemd.services."restic-backups-home".unitConfig = {
-    ConditionPathIsMountPoint = "/mnt/backup";
-    ConditionPathExists = "/etc/secrets/restic-password";
+  systemd.services."restic-backups-home" = {
+    # Skip quietly (no failed unit) when the drive isn't attached or setup
+    # hasn't been done yet.
+    unitConfig = {
+      ConditionPathIsMountPoint = "/mnt/backup";
+      ConditionPathExists = "/etc/secrets/restic-password";
+    };
+    # Runs only when backup, prune and check all succeeded.
+    serviceConfig.ExecStartPost = [ "${pkgs.coreutils}/bin/touch ${stamp}" ];
+  };
+
+  # Because the job skips silently, it could stop running for months unseen.
+  # Once a day (and shortly after login) warn on the desktop when the last
+  # successful backup is missing or older than `staleDays`.
+  systemd.user.services.backup-reminder = {
+    description = "Warn when the last /home backup is too old";
+    serviceConfig.Type = "oneshot";
+    path = [
+      pkgs.coreutils
+      pkgs.libnotify
+    ];
+    script = ''
+      if [ -e ${stamp} ]; then
+        age_days=$(( ($(date +%s) - $(stat -c %Y ${stamp})) / 86400 ))
+        [ "$age_days" -lt ${toString staleDays} ] && exit 0
+        msg="The last successful backup of /home was $age_days days ago. Plug in the backup drive and run: sudo mount /mnt/backup"
+      else
+        msg="/home has never been backed up. See 'Backups' in ~/nixos-config/README.md for the one-time setup."
+      fi
+      notify-send --urgency=critical --app-name=Backups --icon=drive-harddisk "Backups are out of date" "$msg"
+    '';
+  };
+  systemd.user.timers.backup-reminder = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnStartupSec = "10min";
+      OnCalendar = "daily";
+      Persistent = true;
+    };
   };
 
   # Plain restic CLI available regardless of the module's wrapper.
