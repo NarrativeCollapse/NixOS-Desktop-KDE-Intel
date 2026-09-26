@@ -126,6 +126,15 @@ in
     ugrep
   ]);
 
+  # Share the Nix store, your Home Manager profile, and the current system
+  # (read-only) with distrobox containers created from now on. Your shell
+  # (/run/current-system/sw/bin/zsh) and its config (~/.zshrc points into
+  # /nix/store) then work inside boxes, including the 📦 prompt badge.
+  # Existing boxes need recreating to pick this up.
+  xdg.configFile."distrobox/distrobox.conf".text = ''
+    container_additional_volumes="/nix/store:/nix/store:ro /etc/profiles/per-user:/etc/profiles/per-user:ro /run/current-system:/run/current-system:ro"
+  '';
+
   # tealdeer (`tldr`) is installed by brew; this is just its config.
   xdg.configFile."tealdeer/config.toml".text = ''
     [updates]
@@ -164,8 +173,14 @@ in
 
     # Bazzite's fish prompt shows a box inside containers; starship's
     # container module does the same (`$container` is in home.nix's format).
-    # Distrobox boxes don't see /nix/store, so this config won't load there.
+    # It works in distrobox because of distrobox.conf below.
     starship.settings.container.symbol = "📦";
+
+    # Typing an unknown command suggests the package that provides it, and
+    # `, <cmd>` runs a command from nixpkgs without installing it. Uses the
+    # prebuilt index from nix-index-database, so nothing is indexed locally.
+    nix-index.enable = true;
+    nix-index-database.comma.enable = true;
 
     zsh.initContent = lib.mkAfter "nixos-motd";
 

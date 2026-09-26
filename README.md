@@ -4,21 +4,24 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v22** (git tag `v22`). See [Versions](#versions).
+**Current version: v23** (git tag `v23`). See [Versions](#versions).
 
 ## What's in it
 
 - **Desktop:** Plasma 6 on SDDM (Wayland), PipeWire, declarative Flatpak
   apps from Flathub, Plasma/Konsole settings in the config (plasma-manager),
-  Bluetooth via Plasma's BlueDevil, printing, Noto + JetBrains Mono Nerd Font.
+  Bluetooth via Plasma's BlueDevil, printing with automatic network-printer
+  discovery (Avahi/mDNS), Noto + JetBrains Mono Nerd Font.
 - **Hardware:** systemd-boot with the boot-menu editor locked, systemd
-  initrd, LUKS with TRIM passed through to the SSD, zram swap,
+  initrd, LUKS with TRIM passed through to the SSD, zram swap with the
+  kernel tuned for it (as on Fedora and Pop!_OS),
   power-profiles-daemon + thermald, fwupd, and Intel VA-API/QSV drivers so
   video decodes on the GPU. Closing the lid suspends on battery and does
   nothing on AC.
 - **Network & security:** NetworkManager with systemd-resolved, Mullvad VPN
-  (official module), firewall on with only Steam Remote Play's ports open,
-  and hardening sysctls for untrusted Wi-Fi.
+  (official module), firewall on with only Steam Remote Play's ports and
+  mDNS (UDP 5353, for printer discovery) open, and hardening sysctls for
+  untrusted Wi-Fi.
 - **Gaming:** Steam with a gamescope session, GameMode, MangoHud, and
   xpadneo for Xbox controllers over Bluetooth.
 - **Shell & tools:** zsh + Starship with a Bazzite-style terminal (welcome
@@ -41,8 +44,9 @@ CLAUDE.md                        rules for AI-assisted changes (checks, versioni
 .github/workflows/
   check.yml                      CI: nix flake check + full system build
   update-flake-lock.yml          weekly flake.lock update pull request
-hosts/shitbox/configuration.nix  host: hostname + stateVersion + imports
-hardware-configuration.nix       generated; LUKS + ext4 root + EFI boot
+hosts/shitbox/
+  configuration.nix              host: hostname + stateVersion + imports
+  hardware-configuration.nix     generated; LUKS + ext4 root + EFI boot
 modules/
   base.nix                       nix settings, nh + GC, locale, unfree allowlist
   hardware.nix                   boot, TRIM, graphics, zram, thermal, sysctls, firewall
@@ -85,8 +89,9 @@ sudo nixos-rebuild switch --flake .#shitbox
 
 `nix flake check` fails on unformatted files, statix/deadnix findings, a
 README whose "Current version" doesn't match `version` in `flake.nix`, or a
-configuration that doesn't evaluate. `hardware-configuration.nix` is exempt
-from formatting and linting because regenerating it would undo any changes.
+configuration that doesn't evaluate. `hosts/shitbox/hardware-configuration.nix`
+is exempt from formatting and linting because regenerating it would undo any
+changes.
 
 In Neovim the leader key is Space: `<Space>ff` finds files, `<Space>fg`
 searches text, `<Space>fb` lists open buffers.
@@ -112,10 +117,22 @@ Manager declares all of it. Adapted from Bazzite (Apache-2.0).
   [Homebrew](#homebrew).
 - **direnv + nix-direnv:** add `use flake` to a project's `.envrc`, run
   `direnv allow`, and its `nix develop` shell loads whenever you `cd` in.
+- **Command not found → which package:** type a command you don't have and
+  the shell lists the nixpkgs packages that provide it. `, <cmd>` (comma)
+  runs it straight away without installing, e.g. `, cowsay hi`. Both use
+  [nix-index-database](https://github.com/nix-community/nix-index-database)'s
+  prebuilt index, so nothing is indexed on the laptop. (Its message suggests
+  `nix-env -iA` to install; in this config, add the package to the Nix
+  config or Brewfile instead.)
 - **Container badge:** when this prompt runs inside a container, Starship
   starts it with 📦 and the container's name, like Bazzite's prompt.
-  Distrobox doesn't share `/nix/store` with its boxes, so your Home Manager
-  shell config (and the badge) won't load inside them unless you share it.
+- **Your shell inside distrobox:** `~/.config/distrobox/distrobox.conf`
+  shares `/nix/store`, your Home Manager profile and the current system
+  (all read-only) with new boxes, so your zsh, prompt, badge and aliases
+  load inside them. It applies to boxes created after this change; recreate
+  older ones (`distrobox rm <name>`, then `distrobox create …`). This part
+  couldn't be tested before release, so treat it as best-effort; if a box
+  misbehaves, delete that file's line and recreate the box.
 
 The icons come from JetBrains Mono Nerd Font. Konsole's default profile is
 set by the config to "NixOS", which uses JetBrainsMono Nerd Font Mono so
@@ -157,9 +174,10 @@ wrong somewhere:
    no-reply address; swap in another email if you prefer.
 2. **`hosts/shitbox/configuration.nix`**: confirm `system.stateVersion`
    matches your original install release (mirror it in `home.nix`).
-3. **`hardware-configuration.nix`**: this is shitbox's real one. Only
-   regenerate it (`sudo nixos-generate-config --show-hardware-config >
-   hardware-configuration.nix`) on a different machine or disk layout, and
+3. **`hosts/shitbox/hardware-configuration.nix`**: this is shitbox's real
+   one. Only regenerate it (`sudo nixos-generate-config --show-hardware-config >
+   hosts/shitbox/hardware-configuration.nix`) on a different machine or disk
+   layout, and
    then update the LUKS UUID that `modules/hardware.nix` reuses for
    `allowDiscards`.
 4. **Unfree allowlist** in `modules/base.nix`: add a package's name there
@@ -366,7 +384,7 @@ comments:
 - `hardware.xone` for wired/dongle Xbox pads, `gamescope.capSysNice`, and
   Proton-GE options (`modules/gaming.nix`)
 - A `nixpkgs-unstable` input for cherry-picking newer packages (`flake.nix`)
-- `trusted-users`, `warn-dirty`, and nix-index + comma (`modules/base.nix`)
+- `trusted-users` and `warn-dirty` (`modules/base.nix`)
 - `sudo-rs` in place of sudo (`modules/shell.nix`)
 
 ## Versions
@@ -383,7 +401,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v22** | Desktop alerts when the backup or Homebrew job fails (brew-bundle now skips quietly offline instead of retrying forever); tab completion for brew tools; Flatpak apps declared with nix-flatpak (weekly updates, retries offline) replacing the Flathub setup service; plasma-manager with a Nerd Font Konsole profile as the default. |
+| **v23** | Network printer discovery (Avahi/mDNS); "command not found" package suggestions and `, <cmd>` via nix-index-database; kernel VM tuning for zram; `audio`/`video` groups dropped from the user; `hardware-configuration.nix` moved to `hosts/shitbox/`; distrobox boxes share the Nix store so your shell and prompt work inside them. |
+| v22 | Desktop alerts when the backup or Homebrew job fails (brew-bundle now skips quietly offline instead of retrying forever); tab completion for brew tools; Flatpak apps declared with nix-flatpak (weekly updates, retries offline) replacing the Flathub setup service; plasma-manager with a Nerd Font Konsole profile as the default. |
 | v21 | Homebrew for fast-moving standalone CLI tools (yt-dlp, gh, glab, ripgrep, fd, bat, jq, yq, television, dysk, trash-cli, tealdeer, shellcheck, stress-ng), listed in `/Brewfile` and applied daily by a user timer; those tools were removed from the Nix config. Adds nix-ld so brew's prebuilt binaries run. |
 | v20 | Desktop warning when backups are more than 7 days old or never ran; GitHub Actions that check and build every push and open a tested weekly `flake.lock` update PR; the config version shows in the boot menu, welcome banner and fastfetch, and a check keeps the README in sync. |
 | v19 | Bazzite-style terminal (`home/austin/bling.nix`): welcome banner with `toggle-motd`, branded fastfetch, eza/atuin/zoxide/direnv and the rest of Bazzite's CLI tools; the system records the git commit it was built from. |

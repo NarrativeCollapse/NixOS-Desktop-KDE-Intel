@@ -88,11 +88,7 @@
     RuntimeMaxUse=200M
   '';
 
-  # NOTE: programs.command-not-found was removed. It relies on a
-  # channel-populated SQLite index that flake-based systems do not generate,
-  # so it was dead weight. If you want the feature back, use nix-index +
-  # `comma` instead:
-  #
-  #   programs.nix-index.enable = true;
-  #   programs.nix-index.enableZshIntegration = true;
+  # The stock command-not-found needs a channel-built index that flake
+  # systems don't have. nix-index-database replaces it (home/austin/bling.nix).
+  programs.command-not-found.enable = false;
 }

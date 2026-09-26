@@ -8,13 +8,13 @@
   users.users.austin = {
     isNormalUser = true;
     description = "Austin";
-    # Removed the "podman" supplementary group: rootless podman doesn't use a
-    # named group like that and it would error if the group doesn't exist.
+    # No "audio"/"video" groups: logind already grants the logged-in user
+    # access to sound and GPU devices, and "audio" would let apps open sound
+    # devices directly, around PipeWire. (No "podman" group either; rootless
+    # podman doesn't use one.)
     extraGroups = [
       "wheel"
       "networkmanager"
-      "video"
-      "audio"
     ];
     shell = pkgs.zsh;
   };

@@ -32,13 +32,14 @@
   # Swap: zram
   ################################
 
-  # No disk swap is configured (see hardware-configuration.nix). zram gives us
-  # compressed in-RAM swap so large builds / games don't hit the OOM killer,
-  # without writing anything to the encrypted disk.
+  # No disk swap is configured (see hosts/shitbox/hardware-configuration.nix).
+  # zram gives us compressed in-RAM swap so large builds / games don't hit the
+  # OOM killer, without writing anything to the encrypted disk.
   zramSwap = {
     enable = true;
     memoryPercent = 50;
   };
+  # Its VM tuning is in the sysctl block below.
 
   ################################
   # Power / thermal / firmware
@@ -86,7 +87,7 @@
   };
 
   ################################
-  # Network hardening sysctls
+  # Kernel sysctls: zram tuning + network hardening
   ################################
 
   # Standard laptop-on-untrusted-wifi settings. Deliberately NOT setting
@@ -94,6 +95,15 @@
   # (networking.firewall.checkReversePath) and strict values can interfere
   # with Mullvad/WireGuard routing.
   boot.kernel.sysctl = {
+    # zram (the values Fedora and Pop!_OS use): swapping to RAM is cheap, so
+    # prefer it over dropping file cache (swappiness above 100); skip
+    # swap read-ahead, which only helps real disks (page-cluster 0); and keep
+    # kswapd from reclaiming in bursts.
+    "vm.swappiness" = 180;
+    "vm.page-cluster" = 0;
+    "vm.watermark_boost_factor" = 0;
+    "vm.watermark_scale_factor" = 125;
+
     # Ignore ICMP redirects (MITM vector on hostile networks).
     "net.ipv4.conf.all.accept_redirects" = 0;
     "net.ipv4.conf.default.accept_redirects" = 0;

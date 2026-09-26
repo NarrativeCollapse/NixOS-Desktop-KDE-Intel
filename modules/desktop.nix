@@ -161,4 +161,13 @@
   ################################
 
   services.printing.enable = true;
+
+  # mDNS/DNS-SD so network printers (and other .local devices) are found
+  # automatically. openFirewall allows mDNS (UDP 5353) in, which discovery
+  # needs.
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    openFirewall = true;
+  };
 }

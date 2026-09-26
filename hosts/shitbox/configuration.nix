@@ -2,7 +2,7 @@ _:
 
 {
   imports = [
-    ../../hardware-configuration.nix
+    ./hardware-configuration.nix
 
     ../../modules/base.nix
     ../../modules/hardware.nix
