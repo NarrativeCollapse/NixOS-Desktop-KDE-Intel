@@ -167,6 +167,7 @@ in
 
     # Bazzite's fish prompt shows a box inside containers; starship's
     # container module does the same (`$container` is in home.nix's format).
+    # Distrobox boxes don't see /nix/store, so this config won't load there.
     starship.settings.container.symbol = "📦";
 
     zsh.initContent = lib.mkAfter "nixos-motd";

@@ -21,7 +21,9 @@ README of the first commit.
   and hardening sysctls for untrusted Wi-Fi.
 - **Gaming:** Steam with a gamescope session, GameMode, MangoHud, and
   xpadneo for Xbox controllers over Bluetooth.
-- **Shell & tools:** zsh + Starship, Neovim (treesitter, telescope,
+- **Shell & tools:** zsh + Starship with a Bazzite-style terminal (welcome
+  banner, branded fastfetch, eza/atuin/zoxide/direnv and friends; see
+  [Terminal](#terminal-bazzite-style)), Neovim (treesitter, telescope,
   gitsigns), git, Podman (Docker-compatible) + distrobox, LibreWolf.
 - **Maintenance:** nh for rebuilds and weekly cleanup (keeps 14 days and at
   least 5 generations), weekly store deduplication, and daily restic backups
@@ -42,6 +44,7 @@ modules/
   shell.nix                      user, sudo, podman, system packages, zsh
   backup.nix                     restic job for /home (needs one-time setup)
 home/austin/home.nix             zsh, starship, git, neovim, mangohud
+home/austin/bling.nix            Bazzite-style MOTD, fastfetch, CLI tools + aliases
 ```
 
 ## Install
@@ -67,6 +70,7 @@ sudo nixos-rebuild switch --flake .#shitbox
 | Format the tree | `nix fmt` |
 | Lint + evaluate | `nix flake check` |
 | Steam with MangoHud + GameMode | `steam-hud` (toggle the overlay with Right Shift + F12) |
+| Which commit is running? | `nixos-version --configuration-revision` |
 
 `nix flake check` fails on unformatted files, statix/deadnix findings, or a
 configuration that doesn't evaluate. `hardware-configuration.nix` is exempt
@@ -74,6 +78,36 @@ from formatting and linting because regenerating it would undo any changes.
 
 In Neovim the leader key is Space: `<Space>ff` finds files, `<Space>fg`
 searches text, `<Space>fb` lists open buffers.
+
+## Terminal (Bazzite-style)
+
+`home/austin/bling.nix` recreates [Bazzite](https://github.com/ublue-os/bazzite)'s
+terminal the Nix way. Bazzite installs these tools with Homebrew
+(`ujust bazzite-cli`) and appends lines to your shell's rc file; here Home
+Manager declares all of it. Adapted from Bazzite (Apache-2.0).
+
+- **Welcome banner:** every new terminal shows the NixOS version, the system
+  generation and config commit, a table of common commands, a random Nix
+  tip, and links. `toggle-motd` turns it off or back on (same switch file as
+  Bazzite's `~/.config/no-show-user-motd`).
+- **fastfetch:** Bazzite's layout and icons with the NixOS logo; the first
+  line shows the generation and config commit. `neofetch` runs it too.
+- **Tools:** `ls`/`ll`/`la`/`lt` use eza (icons, folders first), `grep`
+  uses ugrep, Ctrl+R searches history with atuin, `z <dir>` jumps to
+  frequent directories (zoxide), `tldr <cmd>` shows examples, `tv` is a
+  fuzzy finder, plus bat, fd, ripgrep, gh, glab, yq, dysk, trash-cli,
+  shellcheck, and stress-ng. `open <file>` opens it in the default app.
+- **direnv + nix-direnv:** add `use flake` to a project's `.envrc`, run
+  `direnv allow`, and its `nix develop` shell loads whenever you `cd` in.
+- **Container badge:** when this prompt runs inside a container, Starship
+  starts it with 📦 and the container's name, like Bazzite's prompt.
+  Distrobox doesn't share `/nix/store` with its boxes, so your Home Manager
+  shell config (and the badge) won't load inside them unless you share it.
+
+The icons need a Nerd Font in the terminal. JetBrains Mono Nerd Font is
+installed; in Konsole pick it under Settings → Edit Current Profile →
+Appearance. To drop the whole setup, remove the `./bling.nix` import at the
+top of `home/austin/home.nix`.
 
 ## Personalize
 
