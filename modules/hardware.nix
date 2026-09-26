@@ -1,4 +1,4 @@
-_:
+{ pkgs, ... }:
 
 {
   ################################
@@ -22,6 +22,11 @@ _:
   };
 
   boot.initrd.systemd.enable = true;
+
+  # Let TRIM through dm-crypt so the weekly fstrim job (on by default)
+  # actually reaches the NVMe drive. Trade-off: someone holding the disk can
+  # see which blocks are unused, though not their contents.
+  boot.initrd.luks.devices."luks-d4b5fbdc-7630-4fb8-a285-fa5390275d8e".allowDiscards = true;
 
   ################################
   # Swap: zram
@@ -60,6 +65,12 @@ _:
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
+    # VA-API (iHD) and oneVPL drivers for Gen12+ Intel graphics, so browsers
+    # and video players decode video on the GPU instead of the CPU.
+    extraPackages = with pkgs; [
+      intel-media-driver
+      vpl-gpu-rt
+    ];
   };
 
   ################################

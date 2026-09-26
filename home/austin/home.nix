@@ -126,9 +126,41 @@
       set clipboard=unnamedplus
     '';
 
+    initLua = ''
+      vim.g.mapleader = " "
+
+      -- Treesitter highlighting wherever a parser is available (Neovim
+      -- bundles lua/vim/vimdoc/markdown/query; the rest come from below).
+      vim.api.nvim_create_autocmd("FileType", {
+        callback = function(args)
+          pcall(vim.treesitter.start, args.buf)
+        end,
+      })
+
+      require("gitsigns").setup()
+
+      local telescope = require("telescope.builtin")
+      vim.keymap.set("n", "<leader>ff", telescope.find_files, { desc = "Find files" })
+      vim.keymap.set("n", "<leader>fg", telescope.live_grep, { desc = "Grep" })
+      vim.keymap.set("n", "<leader>fb", telescope.buffers, { desc = "Buffers" })
+    '';
+
+    # live_grep needs ripgrep; kept on nvim's PATH only.
+    extraPackages = [ pkgs.ripgrep ];
+
     plugins = with pkgs.vimPlugins; [
       vim-nix
-      nvim-treesitter.withAllGrammars
+      # A short list instead of withAllGrammars (~300 parsers).
+      (nvim-treesitter.withPlugins (p: [
+        p.nix
+        p.bash
+        p.json
+        p.yaml
+        p.toml
+        p.python
+        p.diff
+        p.gitcommit
+      ]))
       telescope-nvim
       plenary-nvim
       gitsigns-nvim
@@ -146,6 +178,7 @@
     fastfetch
     btop
     mangohud
+    wl-clipboard # Wayland clipboard backend for nvim's clipboard=unnamedplus
   ];
 
   # MangoHud overlay config (per-user, pairs with the steam-hud alias).

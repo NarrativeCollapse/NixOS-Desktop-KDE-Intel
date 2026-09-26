@@ -132,7 +132,8 @@
     # discoverable at login without a manual toggle.
     powerOnBoot = true;
   };
-  services.blueman.enable = true;
+  # No blueman: Plasma already ships BlueDevil when Bluetooth is enabled, and
+  # blueman would add a second tray applet.
 
   ################################
   # NetworkManager
