@@ -1,45 +1,31 @@
-# Austin's NixOS config (shitbox, NixOS 26.05) — v17
+# NixOS-Desktop-KDE-Intel
 
-Flake-based config for an HP Laptop 14-ep0xxx with Plasma 6, a gaming stack,
-Mullvad VPN, Home Manager, and now daily restic backups of `/home`.
+Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
+HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
+Plasma 6.
 
-## Changelog vs v16
+Changes are tracked in git history. The pre-git v15–v17 changelog is in the
+README of the first commit.
 
-### Active changes
+## What's in it
 
-- **Restic backups of `/home/austin`** (`modules/backup.nix`): daily, with
-  retention (7d/4w/6m), gaming-aware excludes (Steam library, caches, podman
-  images; Proton saves are kept), and safe-skip conditions — the job silently no-ops until you finish
-  the one-time setup below, so a fresh build never has a failed unit.
-- **`boot.loader.systemd-boot.editor = false`** — boot-menu kernel-cmdline
-  editing disabled (easy local-tampering vector on a laptop).
-- **Network hardening sysctls** — ICMP-redirect, source-route, and syncookie
-  settings. `rp_filter` deliberately untouched (Mullvad/WireGuard interaction;
-  the NixOS firewall owns reverse-path checking).
-- `.gitignore` / `.editorconfig` added.
-
-### Documented-but-commented options (off by default)
-
-- TPM-backed LUKS unlock (`modules/hardware.nix`)
-- `kernel.dmesg_restrict` / `kptr_restrict` (`modules/hardware.nix`)
-- SSH + fail2ban pairing (`modules/hardware.nix`)
-- `hardware.xone`, `gamescope.capSysNice` (with FHS caveat), Proton-GE routes
-  (`modules/gaming.nix`)
-- `nixpkgs-unstable` input for cherry-picking newer packages (`flake.nix`)
-- `trusted-users`, `warn-dirty` (`modules/base.nix`)
-- `sudo-rs`, `nix-index`+`comma` (carried over from v16)
-
-## Changelog vs v15 (carried in v16)
-
-- `hardware.opengl` → `hardware.graphics` (+ `enable32Bit` for Proton); v15
-  did not evaluate on 25.11.
-- Mullvad via the official `services.mullvad-vpn` module instead of a
-  hand-rolled unit.
-- `stateVersion` aligned (25.11 everywhere), `defaultSession` unpinned, dead
-  `command-not-found` removed, redundant packages/groups cleaned up.
-- Laptop basics: zram, thermald, `bluetooth.powerOnBoot`, logind lid rules.
-- Neovim/git/starship/MangoHud actually configured in Home Manager; flake
-  `checks` (nixfmt/statix/deadnix) + devShell.
+- **Desktop:** Plasma 6 on SDDM (Wayland), PipeWire, Flatpak with Flathub,
+  Bluetooth via Plasma's BlueDevil, printing, Noto + JetBrains Mono Nerd Font.
+- **Hardware:** systemd-boot with the boot-menu editor locked, systemd
+  initrd, LUKS with TRIM passed through to the SSD, zram swap,
+  power-profiles-daemon + thermald, fwupd, and Intel VA-API/QSV drivers so
+  video decodes on the GPU. Closing the lid suspends on battery and does
+  nothing on AC.
+- **Network & security:** NetworkManager with systemd-resolved, Mullvad VPN
+  (official module), firewall on with only Steam Remote Play's ports open,
+  and hardening sysctls for untrusted Wi-Fi.
+- **Gaming:** Steam with a gamescope session, GameMode, MangoHud, and
+  xpadneo for Xbox controllers over Bluetooth.
+- **Shell & tools:** zsh + Starship, Neovim (treesitter, telescope,
+  gitsigns), git, Podman (Docker-compatible) + distrobox, LibreWolf.
+- **Maintenance:** nh for rebuilds and weekly cleanup (keeps 14 days and at
+  least 5 generations), weekly store deduplication, and daily restic backups
+  of `/home` (needs the one-time setup below).
 
 ## Layout
 
@@ -50,15 +36,15 @@ hosts/shitbox/configuration.nix  host: hostname + stateVersion + imports
 hardware-configuration.nix       generated; LUKS + ext4 root + EFI boot
 modules/
   base.nix                       nix settings, nh + GC, locale, unfree allowlist
-  hardware.nix                   boot, graphics, zram, thermal, sysctls, firewall
-  desktop.nix                    Plasma 6/SDDM, PipeWire, Flatpak, Mullvad, fonts
+  hardware.nix                   boot, TRIM, graphics, zram, thermal, sysctls, firewall
+  desktop.nix                    Plasma 6/SDDM, PipeWire, Flatpak, Mullvad, fonts, lid
   gaming.nix                     Steam, gamescope, GameMode, xpadneo
   shell.nix                      user, sudo, podman, system packages, zsh
   backup.nix                     restic job for /home (needs one-time setup)
 home/austin/home.nix             zsh, starship, git, neovim, mangohud
 ```
 
-## How to use
+## Install
 
 ```bash
 # The rebuild aliases and nh (NH_FLAKE) expect the checkout at ~/nixos-config.
@@ -69,27 +55,52 @@ cd ~/nixos-config
 nix flake check
 
 sudo nixos-rebuild switch --flake .#shitbox
-# Afterwards: `rebuild` or `nh os switch` from anywhere.
 ```
 
-`nix fmt` formats the tree; `nix flake check` fails on unformatted files,
-statix/deadnix findings, or a configuration that doesn't evaluate.
-`nix flake update` moves nixpkgs and home-manager to the latest 26.05 commits.
+## Everyday use
 
-## Before first build — personalize
+| Task | Command |
+| --- | --- |
+| Rebuild after editing | `rebuild` or `nh os switch` (works from any directory) |
+| Update nixpkgs + Home Manager | `nix flake update` in `~/nixos-config`, then rebuild |
+| Roll back a bad rebuild | `sudo nixos-rebuild switch --rollback`, or pick an older entry in the boot menu |
+| Format the tree | `nix fmt` |
+| Lint + evaluate | `nix flake check` |
+| Steam with MangoHud + GameMode | `steam-hud` (toggle the overlay with Right Shift + F12) |
 
-1. **`home/austin/home.nix`** → `programs.git.settings.user` uses the
-   GitHub no-reply address; swap in another email if you prefer.
-2. **`hosts/shitbox/configuration.nix`** → confirm `system.stateVersion`
+`nix flake check` fails on unformatted files, statix/deadnix findings, or a
+configuration that doesn't evaluate. `hardware-configuration.nix` is exempt
+from formatting and linting because regenerating it would undo any changes.
+
+In Neovim the leader key is Space: `<Space>ff` finds files, `<Space>fg`
+searches text, `<Space>fb` lists open buffers.
+
+## Personalize
+
+1. **`home/austin/home.nix`**: `programs.git.settings.user` uses the GitHub
+   no-reply address; swap in another email if you prefer.
+2. **`hosts/shitbox/configuration.nix`**: confirm `system.stateVersion`
    matches your original install release (mirror it in `home.nix`).
-3. **`hardware-configuration.nix`** → this is shitbox's real one. Only
+3. **`hardware-configuration.nix`**: this is shitbox's real one. Only
    regenerate it (`sudo nixos-generate-config --show-hardware-config >
    hardware-configuration.nix`) on a different machine or disk layout, and
    then update the LUKS UUID that `modules/hardware.nix` reuses for
    `allowDiscards`.
-4. Unfree allowlist in `modules/base.nix` if you add proprietary apps.
+4. **Unfree allowlist** in `modules/base.nix`: add a package's name there
+   before installing anything proprietary.
+5. **Steam Remote Play** opens firewall ports on every network. Set
+   `remotePlay.openFirewall = false` in `modules/gaming.nix` if you don't
+   stream games.
 
-## Backups — one-time setup
+## Backups
+
+**What's covered:** all of `/home/austin` except caches and anything
+re-downloadable: installed Steam games, shader caches, the Steam client
+runtime, Podman images, `node_modules`, and similar. Steam `userdata`,
+config, and Proton prefixes (where games without Steam Cloud keep their
+saves) are kept. Retention is 7 daily, 4 weekly, and 6 monthly snapshots.
+
+### One-time setup
 
 The restic job skips silently until both steps are done (by design):
 
@@ -126,7 +137,15 @@ The restic job skips silently until both steps are done (by design):
    failed `restic-backups-home` unit. For a deeper check that re-reads a
    sample of the data: `restic-home check --read-data-subset=5%`.
 
-## Optional extras (left commented in-tree)
+## Optional extras (commented out in-tree)
 
-See the "documented-but-commented" list in the changelog above; each lives
-next to the config it would modify, with the reasoning in comments.
+Each lives next to the config it would change, with the reasoning in
+comments:
+
+- TPM-backed LUKS unlock, `kernel.dmesg_restrict` / `kptr_restrict`, and
+  SSH + fail2ban (`modules/hardware.nix`)
+- `hardware.xone` for wired/dongle Xbox pads, `gamescope.capSysNice`, and
+  Proton-GE options (`modules/gaming.nix`)
+- A `nixpkgs-unstable` input for cherry-picking newer packages (`flake.nix`)
+- `trusted-users`, `warn-dirty`, and nix-index + comma (`modules/base.nix`)
+- `sudo-rs` in place of sudo (`modules/shell.nix`)
