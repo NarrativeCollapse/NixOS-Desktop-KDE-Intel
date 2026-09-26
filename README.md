@@ -9,7 +9,7 @@ Mullvad VPN, Home Manager, and now daily restic backups of `/home`.
 
 - **Restic backups of `/home/austin`** (`modules/backup.nix`): daily, with
   retention (7d/4w/6m), gaming-aware excludes (Steam library, caches, podman
-  images), and safe-skip conditions — the job silently no-ops until you finish
+  images; Proton saves are kept), and safe-skip conditions — the job silently no-ops until you finish
   the one-time setup below, so a fresh build never has a failed unit.
 - **`boot.loader.systemd-boot.editor = false`** — boot-menu kernel-cmdline
   editing disabled (easy local-tampering vector on a laptop).
@@ -120,7 +120,9 @@ The restic job skips silently until both steps are done (by design):
    restic-home restore latest --target /tmp/restore --include /home/austin/Documents
    ```
 
-   Run `restic-home check` occasionally to verify repository integrity.
+   Each run ends with `restic check`, so repository corruption shows up as a
+   failed `restic-backups-home` unit. For a deeper check that re-reads a
+   sample of the data: `restic-home check --read-data-subset=5%`.
 
 ## Optional extras (left commented in-tree)
 

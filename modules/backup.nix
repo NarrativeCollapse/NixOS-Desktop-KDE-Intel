@@ -45,9 +45,21 @@
 
     # Excludes tuned for this machine: everything below is either a cache or
     # re-downloadable. The Steam library alone would dwarf the real data.
+    # Steam's userdata/, config/ and steamapps/compatdata/ (Proton prefixes,
+    # where games without Steam Cloud keep their saves) are still backed up;
+    # restic dedups the near-identical Wine files across prefixes.
     exclude = [
       "/home/austin/.cache"
-      "/home/austin/.local/share/Steam"
+      "/home/austin/.local/share/Steam/steamapps/common" # installed games
+      "/home/austin/.local/share/Steam/steamapps/shadercache"
+      "/home/austin/.local/share/Steam/steamapps/downloading"
+      "/home/austin/.local/share/Steam/steamapps/temp"
+      "/home/austin/.local/share/Steam/appcache"
+      "/home/austin/.local/share/Steam/depotcache"
+      "/home/austin/.local/share/Steam/logs"
+      "/home/austin/.local/share/Steam/package" # Steam client updates
+      "/home/austin/.local/share/Steam/ubuntu12_32" # Steam client runtime
+      "/home/austin/.local/share/Steam/ubuntu12_64"
       "/home/austin/.steam"
       "/home/austin/.local/share/Trash"
       "/home/austin/.local/share/containers" # podman images/layers
@@ -71,11 +83,14 @@
       "--keep-weekly 4"
       "--keep-monthly 6"
     ];
+
+    # `restic check` (repository structure/metadata) after every run, so
+    # corruption surfaces as a failed unit instead of at restore time.
+    runCheck = true;
   };
 
   # Skip quietly (no failed unit) when the drive isn't attached or setup
-  # hasn't been done yet. Run `restic check` by hand occasionally to verify
-  # repository integrity.
+  # hasn't been done yet.
   systemd.services."restic-backups-home".unitConfig = {
     ConditionPathIsMountPoint = "/mnt/backup";
     ConditionPathExists = "/etc/secrets/restic-password";
