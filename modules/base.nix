@@ -6,17 +6,13 @@
   ################################
 
   nix = {
-    settings = {
-      experimental-features = [
-        "nix-command"
-        "flakes"
-      ];
-      # Deduplicate the store automatically on every build.
-      auto-optimise-store = true;
-    };
+    settings.experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
 
-    # Extra store optimisation pass on a schedule (complements
-    # auto-optimise-store, which only runs at build time).
+    # Weekly store deduplication (hard-links identical files). Preferred over
+    # auto-optimise-store, which does the same work during every build.
     optimise = {
       automatic = true;
       dates = [ "weekly" ];
@@ -79,13 +75,7 @@
       pkg:
       builtins.elem (lib.getName pkg) [
         "steam"
-        "steam-original"
-        "steam-runtime"
         "steam-unwrapped"
-        "discord"
-        "vscode"
-        "google-chrome"
-        "mullvad-vpn"
       ];
   };
 

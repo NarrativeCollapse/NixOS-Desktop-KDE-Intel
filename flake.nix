@@ -2,8 +2,8 @@
   description = "Austin's NixOS 26.05 config for HP Laptop 14-ep0xxx (shitbox)";
 
   # NOTE:
-  #  We intentionally do NOT set experimental-features / auto-optimise-store
-  #  in nixConfig. Those belong in the *system* nix.settings (see
+  #  We intentionally do NOT set experimental-features in nixConfig. Nix
+  #  settings belong in the *system* nix.settings (see
   #  modules/base.nix); putting them here only affects evaluation of this
   #  flake and triggers a trust prompt.
 
@@ -83,9 +83,12 @@
               useGlobalPkgs = true;
               useUserPackages = true;
               users.austin = import ./home/austin/home.nix;
-              # Keep a timestamped backup instead of failing when HM would
-              # clobber an existing dotfile.
+              # When HM would clobber an unmanaged dotfile, move it to
+              # <file>.hm-bak instead of failing activation. The name is
+              # fixed, so overwriteBackup replaces an older .hm-bak rather
+              # than failing the second time.
               backupFileExtension = "hm-bak";
+              overwriteBackup = true;
             };
           }
         ];
