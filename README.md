@@ -4,8 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-Changes are tracked in git history. The pre-git v15–v17 changelog is in the
-README of the first commit.
+**Current version: v19** (git tag `v19`). See [Versions](#versions).
 
 ## What's in it
 
@@ -212,3 +211,16 @@ comments:
 - A `nixpkgs-unstable` input for cherry-picking newer packages (`flake.nix`)
 - `trusted-users`, `warn-dirty`, and nix-index + comma (`modules/base.nix`)
 - `sudo-rs` in place of sudo (`modules/shell.nix`)
+
+## Versions
+
+The version goes up by one whenever a change affects the built system
+(packages, services, Home Manager config, flake inputs). Changes to docs,
+lint config or comments alone don't bump it. Each version has a matching
+git tag (`git checkout v18` to see it), and git history has the detail.
+
+| Version | Highlights |
+| --- | --- |
+| **v19** | Bazzite-style terminal (`home/austin/bling.nix`): welcome banner with `toggle-motd`, branded fastfetch, eza/atuin/zoxide/direnv and the rest of Bazzite's CLI tools; the system records the git commit it was built from. |
+| v18 | Review fixes: flake actually locked to NixOS 26.05 (it was building 25.11), real lint/format checks, all 26.05 deprecation warnings fixed, nh for rebuilds and 14-day cleanup, Intel hardware video decode, SSD TRIM through LUKS, working Neovim plugins, Steam dedicated-server port closed, Proton saves included in backups with a check after each run. |
+| v17 | Last pre-git release, imported as-is. Its changelog (and v15–v16's) is in the README of that commit. |
