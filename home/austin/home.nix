@@ -89,9 +89,10 @@
   programs.git = {
     enable = true;
     settings = {
-      # TODO: set these to your real identity.
+      # GitHub no-reply address: links commits to the NarrativeCollapse
+      # account without publishing a personal email.
       user.name = "Austin";
-      user.email = "austin@example.com";
+      user.email = "333098847+NarrativeCollapse@users.noreply.github.com";
       init.defaultBranch = "main";
       pull.rebase = true;
       push.autoSetupRemote = true;

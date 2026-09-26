@@ -78,7 +78,8 @@ statix/deadnix findings, or a configuration that doesn't evaluate.
 
 ## Before first build — personalize
 
-1. **`home/austin/home.nix`** → real `programs.git.settings.user`.
+1. **`home/austin/home.nix`** → `programs.git.settings.user` uses the
+   GitHub no-reply address; swap in another email if you prefer.
 2. **`hosts/shitbox/configuration.nix`** → confirm `system.stateVersion`
    matches your original install release (mirror it in `home.nix`).
 3. **`hardware-configuration.nix`** → this is shitbox's real one. Only
