@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v24** (git tag `v24`). See [Versions](#versions).
+**Current version: v25** (git tag `v25`). See [Versions](#versions).
 
 ## What's in it
 
@@ -46,6 +46,7 @@ CLAUDE.md                        rules for AI-assisted changes (checks, versioni
 .github/workflows/
   check.yml                      CI: nix flake check + full system build
   update-flake-lock.yml          weekly flake.lock update pull request
+  bump-version.py                version bump used by the update workflow
 hosts/shitbox/
   configuration.nix              host: hostname + stateVersion + imports
   hardware-configuration.nix     generated; LUKS + ext4 root + EFI boot
@@ -81,7 +82,7 @@ sudo nixos-rebuild switch --flake .#shitbox
 | Task | Command |
 | --- | --- |
 | Rebuild after editing | `rebuild` or `nh os switch` (works from any directory) |
-| Update nixpkgs + Home Manager | `nix flake update` in `~/nixos-config`, then rebuild |
+| Update the system | Merge the weekly "Update flake.lock" pull request on GitHub (tested and version-bumped), then `git pull && rebuild` |
 | Roll back a bad rebuild | `sudo nixos-rebuild switch --rollback`, or pick an older entry in the boot menu |
 | Format the tree | `nix fmt` |
 | Lint + evaluate | `nix flake check` |
@@ -89,7 +90,7 @@ sudo nixos-rebuild switch --flake .#shitbox
 | Run a game with Proton-GE | In Steam: right-click the game → Properties → Compatibility → tick "Force the use of…" → pick **GE-Proton** |
 | See boot messages behind the splash | Press **Esc** during boot |
 | Which commit is running? | `nixos-version --configuration-revision` |
-| Which config version is running? | Shown in the welcome banner, `fastfetch`, and the boot menu entry (e.g. `v20-26.05…`) |
+| Which config version is running? | Shown in the welcome banner, `fastfetch`, and the boot menu entry (e.g. `v25-26.05…`) |
 
 `nix flake check` fails on unformatted files, statix/deadnix findings, a
 README whose "Current version" doesn't match `version` in `flake.nix`, or a
@@ -369,9 +370,12 @@ Two GitHub Actions workflows live in `.github/workflows/`:
   build shows up on GitHub before you rebuild the laptop. Results are on the
   repository's Actions tab.
 - **Update flake.lock** (Mondays, or run it by hand from the Actions tab):
-  runs `nix flake update`, checks and builds the result, and only then opens
-  a pull request listing what changed. Merging it counts as a config change,
-  so bump the version first (the PR description reminds you).
+  runs `nix flake update` and, if anything changed, bumps the config version
+  (flake.nix, the "Current version" line and a Versions row, via
+  `.github/workflows/bump-version.py`), checks and builds the result, and
+  only then opens a pull request listing what changed. After merging it,
+  run `git pull && rebuild` on the laptop and tag the merge commit. Weeks
+  with no updates open no pull request.
 
 One-time GitHub setting for the update workflow: Settings → Actions →
 General → Workflow permissions → tick **Allow GitHub Actions to create and
@@ -405,7 +409,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v24** | Graphical Breeze boot splash (Plymouth) with the disk password prompt, early Intel KMS and quiet boot (Esc shows messages); Proton-GE (GE-Proton11-1) as a Steam compatibility tool, updated with flake.lock instead of ProtonUp-Qt. |
+| **v25** | Cleanup, no intended behavior change: removed settings that repeated NixOS/Plasma defaults or other modules (dconf, portal, fonts, Bluetooth power-on, logind lid/power key, firewall, sudo, keymap, locale categories, steam-hardware, EDITOR, unused specialArgs); root's shell back to bash. The weekly `flake.lock` PR now bumps the version itself. |
+| v24 | Graphical Breeze boot splash (Plymouth) with the disk password prompt, early Intel KMS and quiet boot (Esc shows messages); Proton-GE (GE-Proton11-1) as a Steam compatibility tool, updated with flake.lock instead of ProtonUp-Qt. |
 | v23 | Network printer discovery (Avahi/mDNS); "command not found" package suggestions and `, <cmd>` via nix-index-database; kernel VM tuning for zram; `audio`/`video` groups dropped from the user; `hardware-configuration.nix` moved to `hosts/shitbox/`; distrobox boxes share the Nix store so your shell and prompt work inside them. |
 | v22 | Desktop alerts when the backup or Homebrew job fails (brew-bundle now skips quietly offline instead of retrying forever); tab completion for brew tools; Flatpak apps declared with nix-flatpak (weekly updates, retries offline) replacing the Flathub setup service; plasma-manager with a Nerd Font Konsole profile as the default. |
 | v21 | Homebrew for fast-moving standalone CLI tools (yt-dlp, gh, glab, ripgrep, fd, bat, jq, yq, television, dysk, trash-cli, tealdeer, shellcheck, stress-ng), listed in `/Brewfile` and applied daily by a user timer; those tools were removed from the Nix config. Adds nix-ld so brew's prebuilt binaries run. |

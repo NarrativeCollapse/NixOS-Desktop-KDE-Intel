@@ -19,15 +19,11 @@
     shell = pkgs.zsh;
   };
 
-  users.defaultUserShell = pkgs.zsh;
-
-  security.sudo = {
-    wheelNeedsPassword = true;
-    extraConfig = ''
-      Defaults timestamp_timeout=15
-    '';
-  };
-  # If you'd like the Rust reimplementation instead, swap the block above for:
+  # Remember the sudo password for 15 minutes instead of 5.
+  security.sudo.extraConfig = ''
+    Defaults timestamp_timeout=15
+  '';
+  # If you'd like the Rust reimplementation instead, swap the line above for:
   #   security.sudo.enable = false;
   #   security.sudo-rs.enable = true;
 
@@ -45,12 +41,10 @@
   # System packages (CLI + desktop apps)
   ################################
 
-  # Kept lean: things that are genuinely system-wide. Per-user CLI tooling and
-  # editor config live in home/austin/home.nix. Removed:
-  #   - podman        (installed by virtualisation.podman.enable)
-  #   - mullvad-vpn   (installed by services.mullvad-vpn)
-  #   - neovim        (configured via Home Manager now; see home.nix)
-  #   - htop          (moved to Home Manager)
+  # Kept lean: only what's genuinely system-wide. Per-user tools and editor
+  # config live in Home Manager (home/austin/), fast-moving CLI tools in the
+  # Brewfile, and apps that come with a module (podman, mullvad) aren't
+  # repeated here.
   environment.systemPackages = with pkgs; [
     # Browser
     librewolf
@@ -63,21 +57,19 @@
     # /Brewfile)
     vifm
 
-    # Essentials
+    # Essentials (git system-wide so root can rebuild from the flake)
     git
     curl
     wget
-
-    # NixOS icon set for KDE launcher
-    nixos-icons
   ];
 
   ################################
   # System shell: zsh
   ################################
 
-  # Needed so pkgs.zsh is a valid login shell for the accounts above. The
-  # interactive configuration (aliases, prompt, plugins) is defined per-user in
-  # Home Manager.
+  # Needed so pkgs.zsh is a valid login shell for austin. The interactive
+  # configuration (aliases, prompt, plugins) is in Home Manager. root keeps
+  # the default bash, which has no Home Manager config to miss and is the
+  # safer shell for recovery.
   programs.zsh.enable = true;
 }

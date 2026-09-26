@@ -29,7 +29,7 @@ let
   tips = pkgs.writeText "motd-tips" (
     lib.concatLines [
       "Roll back a bad rebuild with `sudo nixos-rebuild switch --rollback`, or pick an older generation in the boot menu."
-      "`nix shell nixpkgs#cowsay` gives you a package for this shell only; nothing is installed permanently."
+      "Type a command you don't have and the shell names the package that provides it; `, cowsay hi` runs it without installing."
       "Put `use flake` in a project's `.envrc` and run `direnv allow`: its dev shell loads whenever you `cd` in."
       "`nh os switch` shows which packages changed before it activates the new generation."
       "Ctrl+R searches your shell history (atuin); `z <dir>` jumps to directories you visit often (zoxide)."
@@ -49,9 +49,9 @@ let
     | Command | Description |
     | ------- | ----------- |
     | `rebuild` | Apply changes from ~/nixos-config |
-    | `nix flake update` | Update nixpkgs and Home Manager (run in ~/nixos-config) |
+    | `git pull && rebuild` | Update, after merging the weekly flake.lock pull request |
     | `nix search nixpkgs <name>` | Find a package |
-    | `nix shell nixpkgs#<name>` | Try a package without installing it |
+    | `, <command>` | Run a command without installing it |
     | `fastfetch` | View system information |
     | `toggle-motd` | Turn this banner off (or back on) |
 

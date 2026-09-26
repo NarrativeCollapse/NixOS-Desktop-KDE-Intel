@@ -30,7 +30,6 @@
     enable = true;
     # Keep .zshrc and .zsh_history in ~ rather than moving to ~/.config/zsh.
     dotDir = config.home.homeDirectory;
-    enableCompletion = true;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
 
@@ -57,7 +56,6 @@
 
   programs.starship = {
     enable = true;
-    enableZshIntegration = true;
 
     settings = {
       add_newline = false;
@@ -104,14 +102,12 @@
   };
 
   ###############################
-  # Neovim (single source of truth)
+  # Neovim
   ###############################
 
-  # Previously neovim was "installed but empty" in three places (system
-  # programs.neovim, system environment.systemPackages, and an EDITOR var).
-  # It now lives only here, with actual configuration.
   programs.neovim = {
     enable = true;
+    # Sets EDITOR and VISUAL to nvim.
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
@@ -198,8 +194,5 @@
     toggle_hud=Shift_R+F12
   '';
 
-  home.sessionVariables = {
-    EDITOR = "nvim";
-    PAGER = "less";
-  };
+  home.sessionVariables.PAGER = "less";
 }

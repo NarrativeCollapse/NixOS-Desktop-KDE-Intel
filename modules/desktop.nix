@@ -34,15 +34,12 @@
   };
 
   ################################
-  # XDG portals & settings
+  # XDG portals
   ################################
 
-  xdg.portal = {
-    enable = true;
-    xdgOpenUsePortal = true;
-  };
-
-  programs.dconf.enable = true;
+  # Plasma enables the portals (and dconf); this routes xdg-open through
+  # them too, so sandboxed and Flatpak apps open links in the default app.
+  xdg.portal.xdgOpenUsePortal = true;
 
   ################################
   # Flatpak + Flathub
@@ -72,10 +69,8 @@
   # Mullvad VPN (official module)
   ################################
 
-  # Replaces the old hand-rolled systemd unit. The module wires up the daemon,
-  # correct socket ownership, split routing, resolved integration, and ships
-  # the CLI + GUI. Because it adds the package, do NOT also list mullvad-vpn in
-  # environment.systemPackages.
+  # The module runs the daemon and installs the app itself, so don't also
+  # list mullvad-vpn in environment.systemPackages.
   services.mullvad-vpn = {
     enable = true;
     package = pkgs.mullvad-vpn; # GUI build (use pkgs.mullvad for CLI-only)
@@ -103,37 +98,25 @@
   # Fonts
   ################################
 
+  # Plasma adds Noto and Hack, and the NixOS defaults add DejaVu, Liberation
+  # and more. Listed here: what the config relies on directly.
   fonts = {
     packages = with pkgs; [
-      noto-fonts
-      noto-fonts-color-emoji
-      dejavu_fonts
-      # Monospace with glyphs for Starship / terminal (namespaced attr on
-      # 25.11; the old `nerdfonts` package was split per-family).
-      nerd-fonts.jetbrains-mono
+      noto-fonts-color-emoji # color emoji everywhere
+      nerd-fonts.jetbrains-mono # icons for the terminal (see bling.nix)
     ];
-
-    fontconfig = {
-      antialias = true;
-      subpixel = {
-        rgba = "rgb";
-        lcdfilter = "default";
-      };
-    };
+    # Subpixel antialiasing for the laptop's RGB LCD panel.
+    fontconfig.subpixel.rgba = "rgb";
   };
 
   ################################
   # Bluetooth
   ################################
 
-  hardware.bluetooth = {
-    enable = true;
-    # Default flipped to false upstream; turn on so the Xbox controller is
-    # discoverable at login without a manual toggle.
-    powerOnBoot = true;
-  };
+  # Powered on at boot by default, so the Xbox controller connects at login.
   # No blueman: Plasma already ships BlueDevil when Bluetooth is enabled, and
   # blueman would add a second tray applet.
+  hardware.bluetooth.enable = true;
 
   ################################
   # NetworkManager
@@ -148,13 +131,9 @@
   # Laptop: lid / power behavior
   ################################
 
-  services.logind.settings.Login = {
-    HandleLidSwitch = "suspend";
-    # Don't suspend just because the lid closes while on AC (e.g. docked or
-    # downloading). Change to "suspend" if you always want it to sleep.
-    HandleLidSwitchExternalPower = "ignore";
-    HandlePowerKey = "poweroff";
-  };
+  # Closing the lid suspends on battery (the default), but not on AC (e.g.
+  # docked or downloading). Remove this to always suspend.
+  services.logind.settings.Login.HandleLidSwitchExternalPower = "ignore";
 
   ################################
   # Printing

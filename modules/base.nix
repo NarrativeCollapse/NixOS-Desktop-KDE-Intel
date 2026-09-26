@@ -47,20 +47,9 @@
 
   time.timeZone = "America/Chicago";
 
-  i18n = {
-    defaultLocale = "en_US.UTF-8";
-    # US conventions for the individual LC_* categories.
-    extraLocaleSettings = {
-      LC_ADDRESS = "en_US.UTF-8";
-      LC_MEASUREMENT = "en_US.UTF-8";
-      LC_MONETARY = "en_US.UTF-8";
-      LC_NUMERIC = "en_US.UTF-8";
-      LC_PAPER = "en_US.UTF-8";
-      LC_TIME = "en_US.UTF-8";
-    };
-  };
-
-  console.keyMap = "us";
+  # Every LC_* category follows this unless overridden, e.g.
+  # i18n.extraLocaleSettings.LC_TIME = "en_GB.UTF-8" for a 24-hour clock.
+  i18n.defaultLocale = "en_US.UTF-8";
 
   ################################
   # nixpkgs config

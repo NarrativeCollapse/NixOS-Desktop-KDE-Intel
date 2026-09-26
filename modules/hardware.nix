@@ -83,13 +83,9 @@
   # Graphics
   ################################
 
-  # NixOS 25.11 renamed the whole `hardware.opengl` namespace to
-  # `hardware.graphics`. `hardware.opengl.enable` is now invalid.
-  #   - `enable`        replaces the old opengl.enable
-  #   - `enable32Bit`   replaces the old driSupport32Bit and IS needed for
-  #                     32-bit Steam/Proton titles.
   hardware.graphics = {
     enable = true;
+    # 32-bit drivers, needed by 32-bit Steam/Proton titles.
     enable32Bit = true;
     # VA-API (iHD) and oneVPL drivers for Gen12+ Intel graphics, so browsers
     # and video players decode video on the GPU instead of the CPU.
@@ -99,26 +95,15 @@
     ];
   };
 
-  ################################
-  # Firewall
-  ################################
-
-  # NOTE: Mullvad manages its own killswitch/routing. Keep this strict and do
-  # NOT add manual VPN firewall rules that fight the daemon.
-  networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [ ];
-    allowedUDPPorts = [ ];
-  };
+  # The NixOS firewall is on by default with nothing open; the only ports
+  # opened are by Steam Remote Play (gaming.nix) and Avahi (desktop.nix).
+  # Mullvad manages its own killswitch and routing, so don't add VPN rules
+  # here that would fight the daemon.
 
   ################################
   # Kernel sysctls: zram tuning + network hardening
   ################################
 
-  # Standard laptop-on-untrusted-wifi settings. Deliberately NOT setting
-  # rp_filter here: reverse-path checking is managed by the NixOS firewall
-  # (networking.firewall.checkReversePath) and strict values can interfere
-  # with Mullvad/WireGuard routing.
   boot.kernel.sysctl = {
     # zram (the values Fedora and Pop!_OS use): swapping to RAM is cheap, so
     # prefer it over dropping file cache (swappiness above 100); skip
@@ -129,6 +114,9 @@
     "vm.watermark_boost_factor" = 0;
     "vm.watermark_scale_factor" = 125;
 
+    # Network hardening for untrusted Wi-Fi. rp_filter is deliberately not
+    # set: the NixOS firewall handles reverse-path checking, and strict
+    # values can interfere with Mullvad/WireGuard routing.
     # Ignore ICMP redirects (MITM vector on hostile networks).
     "net.ipv4.conf.all.accept_redirects" = 0;
     "net.ipv4.conf.default.accept_redirects" = 0;
@@ -149,13 +137,13 @@
     # "kernel.kptr_restrict" = 2;
   };
 
-  # If you want SSH later:
+  # If you want SSH later (openFirewall opens port 22):
   #
   # services.openssh = {
   #   enable = true;
+  #   openFirewall = true;
   #   settings.PasswordAuthentication = false;
   # };
-  # networking.firewall.allowedTCPPorts = [ 22 ];
   # services.fail2ban.enable = true;  # only worth it once SSH is exposed
 
   ################################
