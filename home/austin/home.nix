@@ -1,4 +1,9 @@
-{ pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   home.username = "austin";
@@ -17,6 +22,8 @@
 
   programs.zsh = {
     enable = true;
+    # Keep .zshrc and .zsh_history in ~ rather than moving to ~/.config/zsh.
+    dotDir = config.home.homeDirectory;
     enableCompletion = true;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
@@ -80,11 +87,10 @@
 
   programs.git = {
     enable = true;
-    # TODO: set these to your real identity.
-    userName = "Austin";
-    userEmail = "austin@example.com";
-
-    extraConfig = {
+    settings = {
+      # TODO: set these to your real identity.
+      user.name = "Austin";
+      user.email = "austin@example.com";
       init.defaultBranch = "main";
       pull.rebase = true;
       push.autoSetupRemote = true;
@@ -103,6 +109,9 @@
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
+    # No Ruby or Python plugins are used; skip their providers.
+    withRuby = false;
+    withPython3 = false;
 
     extraConfig = ''
       set number relativenumber

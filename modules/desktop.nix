@@ -147,12 +147,12 @@
   # Laptop: lid / power behavior
   ################################
 
-  services.logind = {
-    lidSwitch = "suspend";
+  services.logind.settings.Login = {
+    HandleLidSwitch = "suspend";
     # Don't suspend just because the lid closes while on AC (e.g. docked or
     # downloading). Change to "suspend" if you always want it to sleep.
-    lidSwitchExternalPower = "ignore";
-    powerKey = "poweroff";
+    HandleLidSwitchExternalPower = "ignore";
+    HandlePowerKey = "poweroff";
   };
 
   ################################
