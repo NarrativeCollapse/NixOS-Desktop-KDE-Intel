@@ -7,8 +7,11 @@ _:
 
   programs.steam = {
     enable = true;
+    # Opens TCP 27036-27037 and UDP 10400-10401/27031-27036 on every network,
+    # public Wi-Fi included. Set to false if you don't use Remote Play.
     remotePlay.openFirewall = true;
-    dedicatedServer.openFirewall = true;
+    # dedicatedServer.openFirewall (27015) is deliberately off: it is only
+    # for hosting Source dedicated servers.
     gamescopeSession.enable = true;
   };
 
