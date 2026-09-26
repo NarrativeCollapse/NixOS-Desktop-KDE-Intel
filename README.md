@@ -26,8 +26,7 @@ Mullvad VPN, Home Manager, and now daily restic backups of `/home`.
 - `hardware.xone`, `gamescope.capSysNice` (with FHS caveat), Proton-GE routes
   (`modules/gaming.nix`)
 - `nixpkgs-unstable` input for cherry-picking newer packages (`flake.nix`)
-- `trusted-users`, `warn-dirty`, `programs.nh` as GC frontend
-  (`modules/base.nix`)
+- `trusted-users`, `warn-dirty` (`modules/base.nix`)
 - `sudo-rs`, `nix-index`+`comma` (carried over from v16)
 
 ## Changelog vs v15 (carried in v16)
@@ -46,10 +45,11 @@ Mullvad VPN, Home Manager, and now daily restic backups of `/home`.
 
 ```
 flake.nix                        inputs, HM wiring, checks, devShell
+statix.toml                      statix lint config
 hosts/shitbox/configuration.nix  host: hostname + stateVersion + imports
 hardware-configuration.nix       generated; LUKS + ext4 root + EFI boot
 modules/
-  base.nix                       nix settings, locale, unfree allowlist, GC
+  base.nix                       nix settings, nh + GC, locale, unfree allowlist
   hardware.nix                   boot, graphics, zram, thermal, sysctls, firewall
   desktop.nix                    Plasma 6/SDDM, PipeWire, Flatpak, Mullvad, fonts
   gaming.nix                     Steam, gamescope, GameMode, xpadneo
@@ -61,26 +61,29 @@ home/austin/home.nix             zsh, starship, git, neovim, mangohud
 ## How to use
 
 ```bash
-cd ~
-tar xf nixos-config-shitbox-v17.tar.gz
-mv nixos-config-shitbox-v17 nixos-config   # aliases in home.nix assume ~/nixos-config
-cd nixos-config
+# The rebuild aliases and nh (NH_FLAKE) expect the checkout at ~/nixos-config.
+git clone https://github.com/NarrativeCollapse/NixOS-Desktop-KDE-Intel.git ~/nixos-config
+cd ~/nixos-config
 
-# Replace the placeholder hardware config with YOUR real one:
-sudo nixos-generate-config --show-hardware-config > hardware-configuration.nix
-
-# Optional: lint before building
+# Format, lint, and evaluate the whole system.
 nix flake check
 
 sudo nixos-rebuild switch --flake .#shitbox
+# Afterwards: `rebuild` or `nh os switch` from anywhere.
 ```
+
+`nix fmt` formats the tree; `nix flake check` fails on unformatted files,
+statix/deadnix findings, or a configuration that doesn't evaluate.
+`nix flake update` moves nixpkgs and home-manager to the latest 26.05 commits.
 
 ## Before first build — personalize
 
-1. **`home/austin/home.nix`** → real `git.userName` / `userEmail`.
+1. **`home/austin/home.nix`** → real `programs.git.settings.user`.
 2. **`hosts/shitbox/configuration.nix`** → confirm `system.stateVersion`
    matches your original install release (mirror it in `home.nix`).
-3. **`hardware-configuration.nix`** → regenerate on the actual machine.
+3. **`hardware-configuration.nix`** → this is shitbox's real one. Only
+   regenerate it (`sudo nixos-generate-config --show-hardware-config >
+   hardware-configuration.nix`) on a different machine or disk layout.
 4. Unfree allowlist in `modules/base.nix` if you add proprietary apps.
 
 ## Backups — one-time setup

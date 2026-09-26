@@ -15,13 +15,6 @@
       auto-optimise-store = true;
     };
 
-    # Weekly GC. "shitbox" implies a small disk, so keep retention short.
-    gc = {
-      automatic = true;
-      dates = "weekly";
-      options = "--delete-older-than 3d";
-    };
-
     # Extra store optimisation pass on a schedule (complements
     # auto-optimise-store, which only runs at build time).
     optimise = {
@@ -34,9 +27,23 @@
     # settings.warn-dirty = false;            # silence "Git tree is dirty"
   };
 
-  # Alternative GC frontend: `programs.nh.enable = true` with
-  # `programs.nh.clean.enable = true` would replace the nix.gc block above
-  # with nh's nicer interface. Pick one, not both.
+  ################################
+  # nh: rebuild helper + GC
+  ################################
+
+  # `nh os switch` rebuilds from NH_FLAKE; `nh clean` replaces nix.gc (the nh
+  # module warns if both are enabled).
+  programs.nh = {
+    enable = true;
+    flake = "/home/austin/nixos-config";
+    # Two weeks (and never fewer than 5 generations) leaves room to roll back
+    # an update whose breakage isn't noticed for a few days.
+    clean = {
+      enable = true;
+      dates = "weekly";
+      extraArgs = "--keep-since 14d --keep 5";
+    };
+  };
 
   ################################
   # Locale / time

@@ -67,7 +67,6 @@
           formatter
           pkgs.statix
           pkgs.deadnix
-          pkgs.nh
         ];
       };
 
