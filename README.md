@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v23** (git tag `v23`). See [Versions](#versions).
+**Current version: v24** (git tag `v24`). See [Versions](#versions).
 
 ## What's in it
 
@@ -12,8 +12,9 @@ Plasma 6.
   apps from Flathub, Plasma/Konsole settings in the config (plasma-manager),
   Bluetooth via Plasma's BlueDevil, printing with automatic network-printer
   discovery (Avahi/mDNS), Noto + JetBrains Mono Nerd Font.
-- **Hardware:** systemd-boot with the boot-menu editor locked, systemd
-  initrd, LUKS with TRIM passed through to the SSD, zram swap with the
+- **Hardware:** systemd-boot with the boot-menu editor locked, a graphical
+  Breeze boot splash that also shows the disk password prompt (Plymouth),
+  systemd initrd, LUKS with TRIM passed through to the SSD, zram swap with the
   kernel tuned for it (as on Fedora and Pop!_OS),
   power-profiles-daemon + thermald, fwupd, and Intel VA-API/QSV drivers so
   video decodes on the GPU. Closing the lid suspends on battery and does
@@ -22,8 +23,9 @@ Plasma 6.
   (official module), firewall on with only Steam Remote Play's ports and
   mDNS (UDP 5353, for printer discovery) open, and hardening sysctls for
   untrusted Wi-Fi.
-- **Gaming:** Steam with a gamescope session, GameMode, MangoHud, and
-  xpadneo for Xbox controllers over Bluetooth.
+- **Gaming:** Steam with a gamescope session and Proton-GE available as a
+  compatibility tool, GameMode, MangoHud, and xpadneo for Xbox controllers
+  over Bluetooth.
 - **Shell & tools:** zsh + Starship with a Bazzite-style terminal (welcome
   banner, branded fastfetch, eza/atuin/zoxide/direnv and friends; see
   [Terminal](#terminal-bazzite-style)), Neovim (treesitter, telescope,
@@ -49,9 +51,9 @@ hosts/shitbox/
   hardware-configuration.nix     generated; LUKS + ext4 root + EFI boot
 modules/
   base.nix                       nix settings, nh + GC, locale, unfree allowlist
-  hardware.nix                   boot, TRIM, graphics, zram, thermal, sysctls, firewall
+  hardware.nix                   boot, Plymouth splash, TRIM, graphics, zram, sysctls, firewall
   desktop.nix                    Plasma 6/SDDM, PipeWire, Flatpak, Mullvad, fonts, lid
-  gaming.nix                     Steam, gamescope, GameMode, xpadneo
+  gaming.nix                     Steam, Proton-GE, gamescope, GameMode, xpadneo
   shell.nix                      user, sudo, podman, system packages, zsh
   backup.nix                     restic job for /home (needs one-time setup)
   homebrew.nix                   Homebrew install, PATH, completions, daily `brew bundle`
@@ -84,6 +86,8 @@ sudo nixos-rebuild switch --flake .#shitbox
 | Format the tree | `nix fmt` |
 | Lint + evaluate | `nix flake check` |
 | Steam with MangoHud + GameMode | `steam-hud` (toggle the overlay with Right Shift + F12) |
+| Run a game with Proton-GE | In Steam: right-click the game → Properties → Compatibility → tick "Force the use of…" → pick **GE-Proton** |
+| See boot messages behind the splash | Press **Esc** during boot |
 | Which commit is running? | `nixos-version --configuration-revision` |
 | Which config version is running? | Shown in the welcome banner, `fastfetch`, and the boot menu entry (e.g. `v20-26.05…`) |
 
@@ -381,8 +385,8 @@ comments:
 
 - TPM-backed LUKS unlock, `kernel.dmesg_restrict` / `kptr_restrict`, and
   SSH + fail2ban (`modules/hardware.nix`)
-- `hardware.xone` for wired/dongle Xbox pads, `gamescope.capSysNice`, and
-  Proton-GE options (`modules/gaming.nix`)
+- `hardware.xone` for wired/dongle Xbox pads and `gamescope.capSysNice`
+  (`modules/gaming.nix`)
 - A `nixpkgs-unstable` input for cherry-picking newer packages (`flake.nix`)
 - `trusted-users` and `warn-dirty` (`modules/base.nix`)
 - `sudo-rs` in place of sudo (`modules/shell.nix`)
@@ -401,7 +405,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v23** | Network printer discovery (Avahi/mDNS); "command not found" package suggestions and `, <cmd>` via nix-index-database; kernel VM tuning for zram; `audio`/`video` groups dropped from the user; `hardware-configuration.nix` moved to `hosts/shitbox/`; distrobox boxes share the Nix store so your shell and prompt work inside them. |
+| **v24** | Graphical Breeze boot splash (Plymouth) with the disk password prompt, early Intel KMS and quiet boot (Esc shows messages); Proton-GE (GE-Proton11-1) as a Steam compatibility tool, updated with flake.lock instead of ProtonUp-Qt. |
+| v23 | Network printer discovery (Avahi/mDNS); "command not found" package suggestions and `, <cmd>` via nix-index-database; kernel VM tuning for zram; `audio`/`video` groups dropped from the user; `hardware-configuration.nix` moved to `hosts/shitbox/`; distrobox boxes share the Nix store so your shell and prompt work inside them. |
 | v22 | Desktop alerts when the backup or Homebrew job fails (brew-bundle now skips quietly offline instead of retrying forever); tab completion for brew tools; Flatpak apps declared with nix-flatpak (weekly updates, retries offline) replacing the Flathub setup service; plasma-manager with a Nerd Font Konsole profile as the default. |
 | v21 | Homebrew for fast-moving standalone CLI tools (yt-dlp, gh, glab, ripgrep, fd, bat, jq, yq, television, dysk, trash-cli, tealdeer, shellcheck, stress-ng), listed in `/Brewfile` and applied daily by a user timer; those tools were removed from the Nix config. Adds nix-ld so brew's prebuilt binaries run. |
 | v20 | Desktop warning when backups are more than 7 days old or never ran; GitHub Actions that check and build every push and open a tested weekly `flake.lock` update PR; the config version shows in the boot menu, welcome banner and fastfetch, and a check keeps the README in sync. |

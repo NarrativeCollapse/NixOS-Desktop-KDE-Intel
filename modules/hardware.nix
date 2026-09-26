@@ -29,6 +29,31 @@
   boot.initrd.luks.devices."luks-d4b5fbdc-7630-4fb8-a285-fa5390275d8e".allowDiscards = true;
 
   ################################
+  # Graphical boot: Plymouth
+  ################################
+
+  # A Breeze-themed splash that also draws the disk-unlock password prompt,
+  # instead of scrolling kernel text. Press Esc during boot to see the
+  # messages behind it.
+  boot.plymouth = {
+    enable = true;
+    theme = "breeze";
+    themePackages = [ pkgs.kdePackages.breeze-plymouth ];
+  };
+  # Load the Intel GPU driver in the initrd so the splash and password prompt
+  # appear at native resolution from the start (early KMS).
+  boot.initrd.kernelModules = [ "i915" ];
+  # Keep kernel and systemd status text off the screen on a normal boot
+  # (the Plymouth module adds "splash" itself).
+  boot.consoleLogLevel = 3;
+  boot.initrd.verbose = false;
+  boot.kernelParams = [
+    "quiet"
+    "udev.log_level=3"
+    "rd.systemd.show_status=auto"
+  ];
+
+  ################################
   # Swap: zram
   ################################
 

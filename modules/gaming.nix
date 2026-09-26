@@ -1,4 +1,4 @@
-_:
+{ pkgs, ... }:
 
 {
   ################################
@@ -13,6 +13,10 @@ _:
     # dedicatedServer.openFirewall (27015) is deliberately off: it is only
     # for hosting Source dedicated servers.
     gamescopeSession.enable = true;
+    # Proton-GE shows up in each game's Properties → Compatibility list next
+    # to Valve's Proton builds. It updates with the rest of the system (via
+    # flake.lock updates) instead of through ProtonUp-Qt.
+    extraCompatPackages = [ pkgs.proton-ge-bin ];
   };
 
   hardware.steam-hardware.enable = true;
@@ -46,8 +50,4 @@ _:
   # gamescope launches inside Steam's FHS env for some setups — test before
   # keeping:
   # programs.gamescope.capSysNice = true;
-
-  # Proton-GE for better game compatibility: simplest is adding `protonup-qt`
-  # to home.packages and installing GE builds through it. The nix-gaming flake
-  # (github:fufexan/nix-gaming) is the heavier, fully-declarative route.
 }
