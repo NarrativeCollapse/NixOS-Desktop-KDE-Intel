@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v20** (git tag `v20`). See [Versions](#versions).
+**Current version: v21** (git tag `v21`). See [Versions](#versions).
 
 ## What's in it
 
@@ -34,6 +34,7 @@ Plasma 6.
 
 ```
 flake.nix                        inputs, config version, HM wiring, checks, devShell
+Brewfile                         CLI tools managed by Homebrew (see Homebrew below)
 statix.toml                      statix lint config
 CLAUDE.md                        rules for AI-assisted changes (checks, versioning)
 .github/workflows/
@@ -48,6 +49,7 @@ modules/
   gaming.nix                     Steam, gamescope, GameMode, xpadneo
   shell.nix                      user, sudo, podman, system packages, zsh
   backup.nix                     restic job for /home (needs one-time setup)
+  homebrew.nix                   Homebrew install, PATH, daily `brew bundle` of /Brewfile
 home/austin/home.nix             zsh, starship, git, neovim, mangohud
 home/austin/bling.nix            Bazzite-style MOTD, fastfetch, CLI tools + aliases
 ```
@@ -101,9 +103,10 @@ Manager declares all of it. Adapted from Bazzite (Apache-2.0).
   line shows the generation and config commit. `neofetch` runs it too.
 - **Tools:** `ls`/`ll`/`la`/`lt` use eza (icons, folders first), `grep`
   uses ugrep, Ctrl+R searches history with atuin, `z <dir>` jumps to
-  frequent directories (zoxide), `tldr <cmd>` shows examples, `tv` is a
-  fuzzy finder, plus bat, fd, ripgrep, gh, glab, yq, dysk, trash-cli,
-  shellcheck, and stress-ng. `open <file>` opens it in the default app.
+  frequent directories (zoxide), `open <file>` opens it in the default app.
+  The standalone tools (`tldr`, `tv`, bat, fd, ripgrep, gh, glab, jq, yq,
+  dysk, trash-cli, shellcheck, stress-ng) come from
+  [Homebrew](#homebrew).
 - **direnv + nix-direnv:** add `use flake` to a project's `.envrc`, run
   `direnv allow`, and its `nix develop` shell loads whenever you `cd` in.
 - **Container badge:** when this prompt runs inside a container, Starship
@@ -220,6 +223,53 @@ successful run (backup, prune, and check) touches
 - Test it: `systemctl --user start backup-reminder`.
 - Silence it until the next login: `systemctl --user stop backup-reminder.timer`.
 
+## Homebrew
+
+A few command-line tools come from Homebrew instead of Nix, so they update
+as soon as upstream releases rather than when NixOS catches up. yt-dlp is
+the main reason: it breaks whenever video sites change.
+
+**What's where:**
+
+- **Homebrew (`/Brewfile`):** standalone tools with no shell or system
+  integration: yt-dlp, gh, glab, ripgrep, fd, bat, jq, yq, television,
+  dysk, trash-cli, tealdeer, shellcheck, stress-ng.
+- **Nix (everything else):** anything wired into the shell or system:
+  atuin, zoxide, direnv, starship, eza, Neovim (it keeps its own ripgrep),
+  git, Podman/distrobox, gaming tools, nh, restic, the banner and fastfetch,
+  GUI apps, and rarely-changing basics like curl and htop.
+
+**How it works** (`modules/homebrew.nix`):
+
+- `/home/linuxbrew` is created for you, owned by you, so brew never needs
+  sudo.
+- A user timer (`brew-bundle`, ~5 minutes after login and daily) installs
+  Homebrew on its first run, then makes the installed formulas match
+  `/Brewfile`: installs missing ones, upgrades outdated ones, and
+  **uninstalls anything not listed**. The Brewfile is the source of truth,
+  like the rest of the config, so add tools there rather than with
+  `brew install`, which the next run would undo.
+- brew's `bin` goes at the end of `PATH`, so if a brew dependency has the
+  same name as a Nix tool (python3, git, curl…), the Nix one wins.
+- `programs.nix-ld` is enabled because brew's prebuilt binaries expect the
+  standard Linux loader at `/lib64`, which NixOS doesn't have otherwise.
+- Analytics are off (`HOMEBREW_NO_ANALYTICS=1`).
+
+**Using it:**
+
+| Task | Command |
+| --- | --- |
+| Add or remove a tool | Edit `/Brewfile`, commit, `rebuild`, then `systemctl --user start brew-bundle` (or wait for the daily run) |
+| See what the last run did | `journalctl --user -u brew-bundle` |
+| Update brew tools now | `systemctl --user start brew-bundle` |
+| Check brew's health | `brew doctor` |
+
+**Trade-offs to know:** brew-installed tools aren't covered by NixOS
+rollbacks or CI, and a bad upstream release reaches you the next day. To
+move a tool back to Nix, delete it from the Brewfile and add it to
+`home.packages` in `home/austin/bling.nix`. Shell tab completions for brew
+tools aren't wired up.
+
 ## CI
 
 Two GitHub Actions workflows live in `.github/workflows/`:
@@ -265,7 +315,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v20** | Desktop warning when backups are more than 7 days old or never ran; GitHub Actions that check and build every push and open a tested weekly `flake.lock` update PR; the config version shows in the boot menu, welcome banner and fastfetch, and a check keeps the README in sync. |
+| **v21** | Homebrew for fast-moving standalone CLI tools (yt-dlp, gh, glab, ripgrep, fd, bat, jq, yq, television, dysk, trash-cli, tealdeer, shellcheck, stress-ng), listed in `/Brewfile` and applied daily by a user timer; those tools were removed from the Nix config. Adds nix-ld so brew's prebuilt binaries run. |
+| v20 | Desktop warning when backups are more than 7 days old or never ran; GitHub Actions that check and build every push and open a tested weekly `flake.lock` update PR; the config version shows in the boot menu, welcome banner and fastfetch, and a check keeps the README in sync. |
 | v19 | Bazzite-style terminal (`home/austin/bling.nix`): welcome banner with `toggle-motd`, branded fastfetch, eza/atuin/zoxide/direnv and the rest of Bazzite's CLI tools; the system records the git commit it was built from. |
 | v18 | Review fixes: flake actually locked to NixOS 26.05 (it was building 25.11), real lint/format checks, all 26.05 deprecation warnings fixed, nh for rebuilds and 14-day cleanup, Intel hardware video decode, SSD TRIM through LUKS, working Neovim plugins, Steam dedicated-server port closed, Proton saves included in backups with a check after each run. |
 | v17 | Last pre-git release, imported as-is. Its changelog (and v15–v16's) is in the README of that commit. |

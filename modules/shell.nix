@@ -59,9 +59,9 @@
     podman-compose
     distrobox
 
-    # Terminal tools
+    # Terminal tools (yt-dlp comes from Homebrew so it stays current; see
+    # /Brewfile)
     vifm
-    yt-dlp
 
     # Essentials
     git

@@ -10,6 +10,7 @@ _:
     ../../modules/gaming.nix
     ../../modules/shell.nix
     ../../modules/backup.nix
+    ../../modules/homebrew.nix
   ];
 
   networking.hostName = "shitbox";

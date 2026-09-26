@@ -174,8 +174,8 @@
 
   programs.htop.enable = true;
 
+  # jq comes from Homebrew (see /Brewfile).
   home.packages = with pkgs; [
-    jq
     btop
     mangohud
     wl-clipboard # Wayland clipboard backend for nvim's clipboard=unnamedplus

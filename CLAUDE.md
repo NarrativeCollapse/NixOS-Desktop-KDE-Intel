@@ -17,8 +17,8 @@ flake.nix. It becomes a system label tag, and must match the
 enforces this). Each version also gets a git tag.
 
 - Bump the version by one in the same push as any change that affects the
-  built system: packages, services, Home Manager config, flake inputs
-  (including merging a `flake.lock` update PR).
+  built system: packages, services, Home Manager config, the Brewfile,
+  flake inputs (including merging a `flake.lock` update PR).
 - Don't bump for docs, comments, CI, or lint config alone.
 - For a bump: change `version` in flake.nix, update "Current version" at the
   top of README.md, add a row at the top of its Versions table (one or two

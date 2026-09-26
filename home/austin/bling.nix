@@ -112,23 +112,25 @@ let
   };
 in
 {
-  # bazzite-cli.Brewfile, minus chezmoi/brew/bbrew (Home Manager covers them)
-  # and bash-preexec (atuin's zsh integration doesn't need it).
+  # The rest of bazzite-cli.Brewfile's standalone tools (gh, glab, bat, fd,
+  # ripgrep, yq, dysk, trash-cli, tealdeer, television, shellcheck,
+  # stress-ng) come from Homebrew: see /Brewfile and modules/homebrew.nix.
+  # What stays here is wired into the shell or the MOTD.
   home.packages = [
     motd
     toggleMotd
     sysinfo
   ]
   ++ (with pkgs; [
-    dysk
-    glab
     glow
-    shellcheck
-    stress-ng
-    trash-cli
     ugrep
-    yq-go
   ]);
+
+  # tealdeer (`tldr`) is installed by brew; this is just its config.
+  xdg.configFile."tealdeer/config.toml".text = ''
+    [updates]
+    auto_update = true
+  '';
 
   # bling.sh's aliases that the Home Manager modules below don't provide.
   home.shellAliases = {
@@ -153,15 +155,6 @@ in
     };
     atuin.enable = true;
     zoxide.enable = true;
-    bat.enable = true;
-    fd.enable = true;
-    ripgrep.enable = true;
-    television.enable = true;
-    gh.enable = true;
-    tealdeer = {
-      enable = true;
-      settings.updates.auto_update = true;
-    };
     # Not in Bazzite's default set, but the natural Nix addition: per-project
     # `nix develop` shells that load on `cd`.
     direnv = {
