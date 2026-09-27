@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v26** (git tag `v26`). See [Versions](#versions).
+**Current version: v27** (git tag `v27`). See [Versions](#versions).
 
 ## What's in it
 
@@ -30,7 +30,7 @@ Plasma 6.
 - **Shell & tools:** zsh + Starship with a Bazzite-style terminal (welcome
   banner, branded fastfetch, eza/atuin/zoxide/direnv and friends; see
   [Terminal](#terminal-bazzite-style)), Neovim (treesitter, telescope,
-  gitsigns), git, Podman (Docker-compatible) + distrobox, LibreWolf.
+  gitsigns), the Ghostty terminal alongside Konsole, git, Podman (Docker-compatible) + distrobox, LibreWolf.
 - **Maintenance:** nh for rebuilds and weekly cleanup (keeps 14 days and at
   least 5 generations), weekly store deduplication, daily restic backups of
   `/home` (needs the one-time setup below) with a desktop warning when they
@@ -63,6 +63,7 @@ modules/
   notify-failure.nix             desktop notification when a background job fails
 home/austin/home.nix             zsh, starship, git, neovim, mangohud
 home/austin/bling.nix            Bazzite-style MOTD, fastfetch, CLI tools + aliases
+home/austin/ghostty.nix          Ghostty terminal settings
 home/austin/plasma.nix           Plasma/KDE settings via plasma-manager (Konsole profile)
 ```
 
@@ -146,6 +147,27 @@ set by the config to "NixOS", which uses JetBrainsMono Nerd Font Mono so
 icons fit the terminal grid (see [Plasma settings](#plasma-settings)). To
 drop the whole setup, remove the `./bling.nix` import at the top of
 `home/austin/home.nix`.
+
+### Ghostty
+
+[Ghostty](https://ghostty.org) is installed next to Konsole, with its
+settings in `home/austin/ghostty.nix`. They follow Samuel Lawrentz's
+[minimal Ghostty config](https://samuellawrentz.com/blog/minimal-ghostty-config/):
+16 pt type with 1 px of extra line height, on a black background at 85%
+opacity with the desktop blurred behind it (Plasma supports the blur on
+Wayland).
+
+That config's macOS-only settings (thicker font rendering, hidden titlebar)
+are left out, as are its Cmd+S / Cmd+B keybinds, which drive tmux and do
+nothing without it. Ghostty ships its own JetBrains Mono and Nerd Font
+icons, so the banner, fastfetch and prompt icons work without a font
+setting. The welcome banner and everything else above work the same in
+Ghostty as in Konsole.
+
+Konsole stays the default terminal (the one Dolphin's "Open Terminal" and
+other apps launch). To switch, pick Ghostty in System Settings → Default
+Applications → Terminal Emulator. Ghostty reloads its settings after a
+rebuild with Ctrl+Shift+, (comma).
 
 ### Emoji and icons
 
@@ -335,7 +357,7 @@ services.flatpak.packages = [
 
 ## Wallpapers
 
-Every image in `wallpapers/` is built into the system and listed in Plasma's
+Every image in `wallpapers/` (nine so far) is built into the system and listed in Plasma's
 wallpaper picker (right-click the desktop → Desktop and Wallpaper) next to
 the stock ones. The file name is the title shown in the picker. To add one,
 drop a JPEG or PNG into `wallpapers/`, commit it and rebuild; to remove one,
@@ -425,7 +447,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v26** | Four extra wallpapers built into the system (`wallpapers/`), listed in Plasma's wallpaper picker. |
+| **v27** | Five more wallpapers (nine in all); Ghostty terminal with a minimal translucent config (`home/austin/ghostty.nix`), next to Konsole. |
+| v26 | Four extra wallpapers built into the system (`wallpapers/`), listed in Plasma's wallpaper picker. |
 | v25 | Cleanup, no intended behavior change: removed settings that repeated NixOS/Plasma defaults or other modules (dconf, portal, fonts, Bluetooth power-on, logind lid/power key, firewall, sudo, keymap, locale categories, steam-hardware, EDITOR, unused specialArgs); root's shell back to bash. The weekly `flake.lock` PR now bumps the version itself. |
 | v24 | Graphical Breeze boot splash (Plymouth) with the disk password prompt, early Intel KMS and quiet boot (Esc shows messages); Proton-GE (GE-Proton11-1) as a Steam compatibility tool, updated with flake.lock instead of ProtonUp-Qt. |
 | v23 | Network printer discovery (Avahi/mDNS); "command not found" package suggestions and `, <cmd>` via nix-index-database; kernel VM tuning for zram; `audio`/`video` groups dropped from the user; `hardware-configuration.nix` moved to `hosts/shitbox/`; distrobox boxes share the Nix store so your shell and prompt work inside them. |

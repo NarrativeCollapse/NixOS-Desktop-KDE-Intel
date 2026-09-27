@@ -9,6 +9,7 @@
   # Bazzite-style MOTD, fastfetch, and CLI tools (eza, atuin, zoxide, ...).
   imports = [
     ./bling.nix
+    ./ghostty.nix
     ./plasma.nix
   ];
 
