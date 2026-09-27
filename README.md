@@ -4,12 +4,13 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v25** (git tag `v25`). See [Versions](#versions).
+**Current version: v26** (git tag `v26`). See [Versions](#versions).
 
 ## What's in it
 
 - **Desktop:** Plasma 6 on SDDM (Wayland), PipeWire, declarative Flatpak
   apps from Flathub, Plasma/Konsole settings in the config (plasma-manager),
+  extra wallpapers built into the system,
   Bluetooth via Plasma's BlueDevil, printing with automatic network-printer
   discovery (Avahi/mDNS), Noto + JetBrains Mono Nerd Font.
 - **Hardware:** systemd-boot with the boot-menu editor locked, a graphical
@@ -42,6 +43,7 @@ Plasma 6.
 flake.nix                        inputs, config version, HM wiring, checks, devShell
 Brewfile                         CLI tools managed by Homebrew (see Homebrew below)
 statix.toml                      statix lint config
+wallpapers/                      extra wallpapers installed system-wide
 CLAUDE.md                        rules for AI-assisted changes (checks, versioning)
 .github/workflows/
   check.yml                      CI: nix flake check + full system build
@@ -331,6 +333,20 @@ services.flatpak.packages = [
 - List what's installed now, to copy into the config:
   `flatpak list --app --columns=application`.
 
+## Wallpapers
+
+Every image in `wallpapers/` is built into the system and listed in Plasma's
+wallpaper picker (right-click the desktop → Desktop and Wallpaper) next to
+the stock ones. The file name is the title shown in the picker. To add one,
+drop a JPEG or PNG into `wallpapers/`, commit it and rebuild; to remove one,
+delete the file. Keep images to a few MB, since git keeps every version of
+them forever.
+
+Nothing is set as the default; pick one in the picker. To set it from the
+config instead, or to rotate through the folder as a slideshow, use
+plasma-manager's `workspace.wallpaper` or `workspace.wallpaperSlideShow` in
+`home/austin/plasma.nix`.
+
 ## Plasma settings
 
 `home/austin/plasma.nix` manages Plasma and KDE app settings with
@@ -409,7 +425,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v25** | Cleanup, no intended behavior change: removed settings that repeated NixOS/Plasma defaults or other modules (dconf, portal, fonts, Bluetooth power-on, logind lid/power key, firewall, sudo, keymap, locale categories, steam-hardware, EDITOR, unused specialArgs); root's shell back to bash. The weekly `flake.lock` PR now bumps the version itself. |
+| **v26** | Four extra wallpapers built into the system (`wallpapers/`), listed in Plasma's wallpaper picker. |
+| v25 | Cleanup, no intended behavior change: removed settings that repeated NixOS/Plasma defaults or other modules (dconf, portal, fonts, Bluetooth power-on, logind lid/power key, firewall, sudo, keymap, locale categories, steam-hardware, EDITOR, unused specialArgs); root's shell back to bash. The weekly `flake.lock` PR now bumps the version itself. |
 | v24 | Graphical Breeze boot splash (Plymouth) with the disk password prompt, early Intel KMS and quiet boot (Esc shows messages); Proton-GE (GE-Proton11-1) as a Steam compatibility tool, updated with flake.lock instead of ProtonUp-Qt. |
 | v23 | Network printer discovery (Avahi/mDNS); "command not found" package suggestions and `, <cmd>` via nix-index-database; kernel VM tuning for zram; `audio`/`video` groups dropped from the user; `hardware-configuration.nix` moved to `hosts/shitbox/`; distrobox boxes share the Nix store so your shell and prompt work inside them. |
 | v22 | Desktop alerts when the backup or Homebrew job fails (brew-bundle now skips quietly offline instead of retrying forever); tab completion for brew tools; Flatpak apps declared with nix-flatpak (weekly updates, retries offline) replacing the Flathub setup service; plasma-manager with a Nerd Font Konsole profile as the default. |

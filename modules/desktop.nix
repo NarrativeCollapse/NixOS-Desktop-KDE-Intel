@@ -21,6 +21,16 @@
 
   services.desktopManager.plasma6.enable = true;
 
+  # Extra wallpapers: the images in wallpapers/ at the repo root, installed
+  # where Plasma's wallpaper picker lists them next to the stock ones. Add
+  # or remove an image there and rebuild.
+  environment.systemPackages = [
+    (pkgs.runCommand "extra-wallpapers" { } ''
+      install -Dm644 -t $out/share/wallpapers ${../wallpapers}/*
+    '')
+  ];
+  environment.pathsToLink = [ "/share/wallpapers" ];
+
   ################################
   # Audio: PipeWire
   ################################
