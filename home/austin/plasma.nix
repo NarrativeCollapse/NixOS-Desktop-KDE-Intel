@@ -27,7 +27,9 @@
   # - give the app launcher (start menu) the white NixOS snowflake, from the
   #   nixos-icons package NixOS installs on graphical systems;
   # - the taskbar clock always uses 24-hour time (the system does too; see
-  #   LC_TIME in modules/base.nix).
+  #   LC_TIME in modules/base.nix), with the date in military style, day
+  #   month year: "05 Oct 2026". (The widget can't upper-case the month, and
+  #   British English abbreviates September as "Sept".)
   # It runs at the first login after a rebuild that changes it, so changes
   # you make by hand afterwards stay.
   programs.plasma.startup.desktopScript.taskbar.text = ''
@@ -56,6 +58,8 @@
         } else if (widget.type === "org.kde.plasma.digitalclock") {
           widget.currentConfigGroup = ["Appearance"];
           widget.writeConfig("use24hFormat", 2);
+          widget.writeConfig("dateFormat", "custom");
+          widget.writeConfig("customDateFormat", "dd MMM yyyy");
         }
       }
     }

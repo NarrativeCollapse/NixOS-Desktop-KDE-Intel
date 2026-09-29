@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v42** (git tag `v42`). See [Versions](#versions).
+**Current version: v43** (git tag `v43`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock" width="820">
 
@@ -485,11 +485,16 @@ What it sets now:
   - gives the app launcher (the start menu button) the **white NixOS
     snowflake** (`nix-snowflake-white`, from the `nixos-icons` package
     NixOS installs on desktops) instead of the KDE logo;
-  - sets the taskbar clock to **24-hour** time. The whole system uses
+  - sets the taskbar clock to **24-hour** time with a **military-style
+    date**, day month year: `05 Oct 2026`. Two limits of Plasma's clock:
+    it can't upper-case the month (`OCT`), and British English, which the
+    system uses for times, abbreviates September as `Sept`. The whole
+    system uses
     24-hour time too (lock and login screens, apps, `date`), via
     `i18n.extraLocaleSettings.LC_TIME = "en_GB.UTF-8"` in
-    `modules/base.nix`; that also makes short dates day/month
-    (29/09/2026). Delete that line to go back to 12-hour US time.
+    `modules/base.nix`; that also makes short dates elsewhere (Dolphin,
+    for example) day/month: 29/09/2026. Delete that line to go back to
+    12-hour US time.
 
   It runs at the first login after a rebuild that changes it, so changes
   you make to the taskbar by hand afterwards stay.
@@ -580,7 +585,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v42** | Taskbar: System Settings unpinned, and the app launcher shows the white NixOS snowflake; README screenshot updated. |
+| **v43** | Taskbar clock date in military style, day month year (`05 Oct 2026`); README screenshot updated. |
+| v42 | Taskbar: System Settings unpinned, and the app launcher shows the white NixOS snowflake; README screenshot updated. |
 | v41 | 24-hour time everywhere (`LC_TIME` = en_GB: taskbar, lock and login screens, apps, `date`; short dates become day/month); the default-browser (LibreWolf) launcher unpinned from the taskbar; README screenshot updated. |
 | v40 | Google Chrome pinned to the taskbar (added to the existing panel, nothing else changed); example desktop screenshot at the top of the README. |
 | v39 | Discover removed: Bazaar is the app store, `update` handles Flatpak and firmware updates, and there's no more update-notifier pop-up. |
