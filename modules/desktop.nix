@@ -97,7 +97,7 @@ in
       "org.kde.isoimagewriter" # write ISO images to USB sticks
       "io.github.kolunmi.Bazaar" # Flathub app store (as on Bazzite/Bluefin)
     ];
-    # Leave apps installed by hand (Discover, `flatpak install`) alone. Set to
+    # Leave apps installed by hand (Bazaar, `flatpak install`) alone. Set to
     # true once everything you want is listed above to make this list the
     # source of truth, like the Brewfile.
     uninstallUnmanaged = false;
@@ -131,6 +131,11 @@ in
     qrca # QR code scanner
     plasma-keyboard # on-screen touch keyboard (the laptop has no touchscreen)
     qtvirtualkeyboard
+    # Discover, KDE's software center. Bazaar (a Flatpak, below) is the app
+    # store here; Discover would be a second one, and its update notifier
+    # nags about updates that `update` handles. On NixOS it can't manage
+    # system packages anyway, only Flatpaks and firmware.
+    discover
   ];
 
   # Plasma turns these on by default. Off here, since nothing on this

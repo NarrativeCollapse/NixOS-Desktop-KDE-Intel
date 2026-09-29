@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v38** (git tag `v38`). See [Versions](#versions).
+**Current version: v39** (git tag `v39`). See [Versions](#versions).
 
 ## What's in it
 
@@ -18,7 +18,8 @@ Plasma 6.
   Plasma defaults nothing here uses are left out (see `modules/desktop.nix`):
   the Orca screen reader and text-to-speech, the KDE PIM backend (Akonadi),
   the X11 session, Elisa, the Help Center, the remote desktop server, the
-  QR scanner and the on-screen touch keyboard.
+  QR scanner, the on-screen touch keyboard and Discover (Bazaar is the app
+  store; see [Flatpak apps](#flatpak-apps)).
 - **Hardware:** systemd-boot with the boot-menu editor locked, a graphical
   Breeze boot splash that also shows the disk password prompt (Plymouth),
   systemd initrd, LUKS with TRIM passed through to the SSD, zram swap with the
@@ -165,9 +166,9 @@ changes anything.
 Still scheduled, because none of them change what's installed: nh's weekly
 cleanup of old generations, weekly store deduplication, the daily backup,
 fwupd's refresh of firmware metadata (firmware itself only installs through
-`fwupdmgr update` or Discover), and tldr's page cache. Discover may still
-show an "updates available" notification; it doesn't install anything
-unless you click it.
+`update` [w] or `fwupdmgr update`), and tldr's page cache. Nothing pops up
+"updates available" notifications either: Discover, which would, isn't
+installed.
 
 ## Terminal (Bazzite-style)
 
@@ -417,9 +418,18 @@ services.flatpak.packages = [
   listed and hand-installed apps alike, and asks first.
 - Listed now: Google Chrome, VLC, Flatseal (manages Flatpak app
   permissions), qBittorrent, KDE ISO Image Writer (writes ISO images to
-  USB sticks) and Bazaar (a Flathub app store, as on Bazzite and Bluefin;
-  Discover works too). `uninstallUnmanaged = false` leaves apps you
-  installed by hand (Discover, `flatpak install`) alone. Once every app you
+  USB sticks) and Bazaar (a Flathub app store, as on Bazzite and Bluefin).
+  `uninstallUnmanaged = false` leaves apps you installed by hand (Bazaar,
+  `flatpak install`) alone.
+- **Why Bazaar and not Discover:** Plasma normally installs Discover, its
+  software center, but it's excluded here. Bazaar already covers browsing
+  and installing Flathub apps, so Discover would be a second app store.
+  On NixOS Discover can't manage system packages anyway (those come from
+  this config), only Flatpaks and firmware, which `update` handles. And
+  its background update notifier would keep announcing updates, which goes
+  against updating only when you choose. Removing it frees about 23 MB.
+  To bring it back, delete `discover` from `environment.plasma6.excludePackages`
+  in `modules/desktop.nix`. Once every app you
   want is listed, set it to `true` to make the list authoritative; unlisted
   apps are then removed.
 - List what's installed now, to copy into the config:
@@ -542,7 +552,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v38** | Leaner: Wayland only (no X11 session), and the unused Plasma Help Center, remote desktop server, QR scanner and touch keyboard, plus vifm and wget, removed. Welcome banner skipped inside containers. Backups: each check re-reads 2% of the data, and `backup-test` does a real test restore. |
+| **v39** | Discover removed: Bazaar is the app store, `update` handles Flatpak and firmware updates, and there's no more update-notifier pop-up. |
+| v38 | Leaner: Wayland only (no X11 session), and the unused Plasma Help Center, remote desktop server, QR scanner and touch keyboard, plus vifm and wget, removed. Welcome banner skipped inside containers. Backups: each check re-reads 2% of the data, and `backup-test` does a real test restore. |
 | v37 | Flatpak: Bazaar, the Flathub app store Bazzite and Bluefin use. |
 | v36 | Flatpak: KDE ISO Image Writer, for writing ISO images to USB sticks. |
 | v35 | `backup-setup` walks through the one-time backup setup (password, drive, first backup), and the backup drive's mount is enabled; `update` gains [w] firmware and [r] roll back; systemd-oomd closes runaway apps before the desktop freezes; Breeze Dark with `gas-masks` on the desktop, lock and login screens; Flatpaks: Chrome, VLC, Flatseal, qBittorrent. |
