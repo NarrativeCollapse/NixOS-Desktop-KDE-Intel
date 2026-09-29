@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v32** (git tag `v32`). See [Versions](#versions).
+**Current version: v33** (git tag `v33`). See [Versions](#versions).
 
 ## What's in it
 
@@ -167,9 +167,10 @@ terminal the Nix way. Bazzite installs these tools with Homebrew
 (`ujust bazzite-cli`) and appends lines to your shell's rc file; here Home
 Manager declares all of it. Adapted from Bazzite (Apache-2.0).
 
-- **Welcome banner:** every new terminal shows the NixOS version, the system
-  generation and config commit, a table of common commands, a random Nix
-  tip, and links. `toggle-motd` turns it off or back on (same switch file as
+- **Welcome banner:** every new terminal shows a small black-and-white
+  NixOS logo beside the NixOS version, the system generation and config
+  commit, then a table of common commands (starting with `update`), a
+  random Nix tip, and links. `toggle-motd` turns it off or back on (same switch file as
   Bazzite's `~/.config/no-show-user-motd`).
 - **fastfetch:** Bazzite's layout and icons with the NixOS logo; the first
   line shows the generation and config commit. `neofetch` runs it too.
@@ -492,7 +493,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v32** | Updates only when you ask: new `update` menu (system, Flatpak, Homebrew) that shows what would change and applies it on a yes; the system part bumps, tags and pushes the version itself. Homebrew's daily job, Flatpak's weekly auto-update and the weekly GitHub update PR are off. |
+| **v33** | Welcome banner: a small black-and-white NixOS logo beside the heading and system lines. |
+| v32 | Updates only when you ask: new `update` menu (system, Flatpak, Homebrew) that shows what would change and applies it on a yes; the system part bumps, tags and pushes the version itself. Homebrew's daily job, Flatpak's weekly auto-update and the weekly GitHub update PR are off. |
 | v31 | Slimmed down: Ghostty removed (Konsole is the terminal again), and Plasma's Orca screen reader, speech-dispatcher and KDE PIM backend (Akonadi) turned off, about 1.1 GB less. |
 | v30 | Nix channels turned off (flakes only; `nix-shell -p` and `<nixpkgs>` use the system's nixpkgs); htop and btop removed (Plasma's System Monitor covers it). CI keeps the packages it builds itself (mainly Xwayland) in a build cache between runs. |
 | v29 | Fix: desktop alerts for failed system jobs (the backup) never appeared, because the alert ran `sh`, which isn't on a service's PATH. CI moved to Node 24 actions (checkout v7, create-pull-request v8), a read-only token, and cancels superseded runs. |

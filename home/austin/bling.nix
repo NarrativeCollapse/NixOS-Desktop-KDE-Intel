@@ -39,13 +39,19 @@ let
     ]
   );
 
+  # A small black-and-white NixOS snowflake (neofetch's "nixos_small"),
+  # shown left of the heading.
+  logo = pkgs.writeText "nixos-logo-small" ''
+      \\  \\ //
+     ==\\__\\/ //
+       //   \\//
+    ==//     //==
+     //\\___//
+    // /\\  \\==
+      // \\  \\
+  '';
+
   motdTemplate = pkgs.writeText "motd.md" ''
-    # Welcome to NixOS 
-
-     `$OS_NAME`
-
-    󱋩 `$SYSINFO`
-
     | Command | Description |
     | ------- | ----------- |
     | `update` | Check for system, Flatpak and Homebrew updates; you choose what to apply |
@@ -83,6 +89,29 @@ let
       export OS_NAME SYSINFO TIP
       # shellcheck disable=SC2016
       rendered=$(envsubst '$OS_NAME $SYSINFO $TIP' < ${motdTemplate})
+
+      # Header: the logo in plain white, with the heading and system lines
+      # beside it in the colors glow uses for the rest of the banner.
+      if [ -t 1 ]; then
+        w=$'\e[37m' h=$'\e[93;104;1m' c=$'\e[91;40m' r=$'\e[0m'
+      else
+        w="" h="" c="" r=""
+      fi
+      info=(
+        ""
+        "$h Welcome to NixOS  $r"
+        ""
+        "  $c $OS_NAME $r"
+        ""
+        "󱋩  $c $SYSINFO $r"
+        ""
+      )
+      mapfile -t lines < ${logo}
+      echo
+      for i in "''${!lines[@]}"; do
+        printf '  %s%-14s%s  %s\n' "$w" "''${lines[$i]}" "$r" "''${info[$i]:-}"
+      done
+
       if [ -t 1 ]; then
         # When it can see the terminal, glow asks it for its colors and waits
         # up to 20s for replies some terminals (e.g. the Linux console) never
