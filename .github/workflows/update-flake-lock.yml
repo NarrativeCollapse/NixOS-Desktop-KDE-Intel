@@ -13,13 +13,10 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
-
       - uses: actions/checkout@v7
 
-      - uses: cachix/install-nix-action@v31
+      # Disk space, Nix, and the cache of packages CI builds itself.
+      - uses: ./.github/actions/setup-nix
 
       - name: Update inputs
         id: update
@@ -66,6 +63,15 @@ jobs:
 
       - name: Clean up
         run: rm -f update.log
+
+      # Keep this run's newly built packages for the next run (see
+      # .github/actions/setup-nix). Saved even after a failure, so work done
+      # before it isn't repeated.
+      - uses: actions/cache/save@v5
+        if: always()
+        with:
+          path: ${{ runner.temp }}/nix-cache
+          key: nix-build-cache-${{ github.run_id }}
 
       - uses: peter-evans/create-pull-request@v8
         if: steps.update.outputs.changed == 'true'

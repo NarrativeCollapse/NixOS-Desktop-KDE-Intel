@@ -172,11 +172,9 @@
   # CLI tools & env
   ###############################
 
-  programs.htop.enable = true;
-
-  # jq comes from Homebrew (see /Brewfile).
+  # jq comes from Homebrew (see /Brewfile). For a process monitor, Plasma's
+  # System Monitor (Ctrl+Esc for its process list) is built in.
   home.packages = with pkgs; [
-    btop
     mangohud
     wl-clipboard # Wayland clipboard backend for nvim's clipboard=unnamedplus
   ];

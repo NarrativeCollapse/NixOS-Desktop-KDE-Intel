@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v29** (git tag `v29`). See [Versions](#versions).
+**Current version: v30** (git tag `v30`). See [Versions](#versions).
 
 ## What's in it
 
@@ -45,6 +45,7 @@ Brewfile                         CLI tools managed by Homebrew (see Homebrew bel
 statix.toml                      statix lint config
 wallpapers/                      extra wallpapers installed system-wide
 CLAUDE.md                        rules for AI-assisted changes (checks, versioning)
+.github/actions/setup-nix/       CI setup shared by both workflows (Nix + build cache)
 .github/workflows/
   check.yml                      CI: nix flake check + full system build
   update-flake-lock.yml          weekly flake.lock update pull request
@@ -292,7 +293,7 @@ the main reason: it breaks whenever video sites change.
 - **Nix (everything else):** anything wired into the shell or system:
   atuin, zoxide, direnv, starship, eza, Neovim (it keeps its own ripgrep),
   git, Podman/distrobox, gaming tools, nh, restic, the banner and fastfetch,
-  GUI apps, and rarely-changing basics like curl and htop.
+  GUI apps, and rarely-changing basics like curl and wget.
 
 **How it works** (`modules/homebrew.nix`):
 
@@ -406,7 +407,8 @@ Two GitHub Actions workflows live in `.github/workflows/`:
 - **Check** (every push to `main` and every pull request): runs
   `nix flake check` and builds the whole system, so a package that fails to
   build shows up on GitHub before you rebuild the laptop. Results are on the
-  repository's Actions tab.
+  repository's Actions tab. A newer push cancels an older run still in
+  progress.
 - **Update flake.lock** (Mondays, or run it by hand from the Actions tab):
   runs `nix flake update` and, if anything changed, bumps the config version
   (flake.nix, the "Current version" line and a Versions row, via
@@ -417,6 +419,15 @@ Two GitHub Actions workflows live in `.github/workflows/`:
   shows "action required": GitHub holds workflow runs on pull requests the
   Actions bot opens until you click **Approve and run**. That's optional,
   since the same check and build already passed before the PR was opened.
+
+**Build cache.** Nearly everything downloads prebuilt from cache.nixos.org,
+but a few packages the config changes have to be built: mainly Xwayland,
+which NixOS rebuilds with the system's X11 font path, at over 2 minutes a
+run. Both workflows keep those locally built packages (and only those) in a
+small binary cache stored with GitHub's Actions cache, so a later run
+downloads them instead of rebuilding. It resets itself past 2 GB, and
+GitHub drops entries unused for a week. The setup lives in
+`.github/actions/setup-nix/action.yml`; nothing needs configuring.
 
 One-time GitHub setting for the update workflow: Settings → Actions →
 General → Workflow permissions → tick **Allow GitHub Actions to create and
@@ -450,7 +461,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v29** | Fix: desktop alerts for failed system jobs (the backup) never appeared, because the alert ran `sh`, which isn't on a service's PATH. CI moved to Node 24 actions (checkout v7, create-pull-request v8), a read-only token, and cancels superseded runs. |
+| **v30** | Nix channels turned off (flakes only; `nix-shell -p` and `<nixpkgs>` use the system's nixpkgs); htop and btop removed (Plasma's System Monitor covers it). CI keeps the packages it builds itself (mainly Xwayland) in a build cache between runs. |
+| v29 | Fix: desktop alerts for failed system jobs (the backup) never appeared, because the alert ran `sh`, which isn't on a service's PATH. CI moved to Node 24 actions (checkout v7, create-pull-request v8), a read-only token, and cancels superseded runs. |
 | v28 | Weekly `flake.lock` update: nixpkgs. |
 | v27 | Five more wallpapers (nine in all); Ghostty terminal with a minimal translucent config (`home/austin/ghostty.nix`), next to Konsole. |
 | v26 | Four extra wallpapers built into the system (`wallpapers/`), listed in Plasma's wallpaper picker. |

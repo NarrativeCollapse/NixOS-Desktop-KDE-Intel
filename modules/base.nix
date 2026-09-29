@@ -11,6 +11,11 @@
       "flakes"
     ];
 
+    # Flakes only: no `nix-channel` command or root channel state. `<nixpkgs>`
+    # (nix-shell -p, nix-build '<nixpkgs>') and `nix run nixpkgs#...` both
+    # resolve to the nixpkgs this system was built from (flake.lock).
+    channel.enable = false;
+
     # Weekly store deduplication (hard-links identical files). Preferred over
     # auto-optimise-store, which does the same work during every build.
     optimise = {
