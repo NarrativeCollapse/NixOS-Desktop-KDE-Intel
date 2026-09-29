@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v44** (git tag `v44`). See [Versions](#versions).
+**Current version: v45** (git tag `v45`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v43.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -111,21 +111,22 @@ sudo nixos-rebuild switch --flake .#shitbox
 The flake also builds a USB installer: a live Plasma desktop that installs
 this exact config on a fresh (or the same) laptop.
 
-**Build it** on any machine with Nix; the laptop itself is the easiest:
+**Get it** either way:
 
-```bash
-nix build ~/nixos-config#installer-iso
-ls result/iso/        # shitbox-installer-vN.iso, about 3 GB
-```
+- **Download from GitHub:** Actions tab → **Build installer ISO** → **Run
+  workflow**. When it finishes (15–30 minutes), the run's page has an
+  `installer-iso` download (a zip with the `.iso` and its `SHA256SUMS`),
+  kept for 7 days.
+- **Build it yourself** on any machine with Nix; the laptop is the easiest:
+
+  ```bash
+  nix build ~/nixos-config#installer-iso
+  ls result/iso/        # shitbox-installer-vN.iso, about 3 GB
+  ```
 
 Write it to a USB stick (8 GB or more) with **ISO Image Writer** (installed
 as a Flatpak) or any "DD mode" USB writer, then boot from it (F9 for the boot
 menu on HP laptops).
-
-CI can't give you a download link while the repository is private: free
-private repositories get about 500 MB of Actions storage, and the ISO is
-about 3 GB. The **Build installer ISO** workflow (Actions tab) still
-test-builds it, and uploads it too if the repository is ever made public.
 
 **What's on it:**
 
@@ -136,8 +137,8 @@ test-builds it, and uploads it too if the repository is ever made public.
   session. Here KWallet is off, so the applet works. Wi-Fi is also
   unblocked at boot (some HP laptops start with it soft-blocked), all
   firmware is included, and `nmtui` still works as a fallback.
-- A copy of this config (the version it was built from), because the
-  GitHub repository is private.
+- A copy of this config (the version it was built from), used only if
+  GitHub can't be reached during the install.
 - **Install shitbox** on the desktop (or `sudo install-shitbox` in Konsole).
 
 **What `install-shitbox` does**, asking before anything destructive:
@@ -150,28 +151,29 @@ test-builds it, and uploads it too if the repository is ever made public.
 4. Erases the disk: a 1 GB EFI boot partition, and the rest LUKS2-encrypted
    ext4, the same layout as now.
 5. Generates `hardware-configuration.nix` for the machine and puts the
-   config in `/home/austin/nixos-config`: cloned from GitHub if you choose
-   to (it asks for your username and a personal access token, since the
-   repository is private), otherwise the copy from the USB stick. The new
-   hardware configuration is committed there.
+   config in `/home/austin/nixos-config`: the latest from GitHub, or the
+   copy from the USB stick if GitHub can't be reached. The new hardware
+   configuration is committed there (push it after logging in to GitHub on
+   the laptop: `cd ~/nixos-config && git push`).
 6. Installs the system with `nixos-install --flake`.
 7. Asks for austin's login password, then offers to reboot.
 
-**After installing from the USB copy**, connect `~/nixos-config` to GitHub
-once (and push the new hardware configuration), after the first login:
+**Only if it had to use the USB copy** (GitHub unreachable during the
+install), connect `~/nixos-config` to GitHub once after the first login:
 
 ```bash
 cd ~/nixos-config
-, gh auth login                       # GitHub CLI, run without installing it
-, gh auth setup-git
 cp hosts/shitbox/hardware-configuration.nix /tmp/hw.nix
 git fetch origin
 git reset --hard origin/main          # the latest config from GitHub
 cp /tmp/hw.nix hosts/shitbox/hardware-configuration.nix
 git commit -am "hosts/shitbox: hardware configuration after reinstall"
-git push
 rebuild
 ```
+
+Pushing (`git push`) needs a GitHub login on the laptop:
+`, gh auth login` then `, gh auth setup-git` (the `,` runs the GitHub CLI
+without installing it).
 
 Then restore your files from the backup drive (see [Backups](#backups)).
 
@@ -607,9 +609,8 @@ Three GitHub Actions workflows live in `.github/workflows/`:
   repository's Actions tab. A newer push cancels an older run still in
   progress.
 - **Build installer ISO** (only when run by hand from the Actions tab):
-  builds the installer ISO to prove it still builds, and uploads it only if
-  the repository is public (see
-  [Reinstalling](#reinstalling-the-installer-iso)).
+  builds the installer ISO and offers it as a download on the run's page
+  for 7 days (see [Reinstalling](#reinstalling-the-installer-iso)).
 - **Update flake.lock** (only when run by hand from the Actions tab;
   normally `update` does this on the laptop): runs `nix flake update` and,
   if anything changed, bumps the config version
@@ -661,7 +662,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v44** | Installer ISO (`nix build .#installer-iso`): live Plasma with panel Wi-Fi that works, and `install-shitbox`, which erases a chosen disk, sets up LUKS and installs this config. TRIM on the encrypted disk now follows `hardware-configuration.nix`, so a reinstall's new disk UUID needs no edits. |
+| **v45** | Fix: v44 didn't evaluate (the TRIM-on-LUKS lookup passed the hardware configuration too few arguments). The repository is public, so the installer clones the latest config without a login and CI offers the ISO as a download. |
+| v44 | Installer ISO (`nix build .#installer-iso`): live Plasma with panel Wi-Fi that works, and `install-shitbox`, which erases a chosen disk, sets up LUKS and installs this config. TRIM on the encrypted disk now follows `hardware-configuration.nix`, so a reinstall's new disk UUID needs no edits. |
 | v43 | Taskbar clock date in military style, day month year (`05 Oct 2026`); README screenshot updated. |
 | v42 | Taskbar: System Settings unpinned, and the app launcher shows the white NixOS snowflake; README screenshot updated. |
 | v41 | 24-hour time everywhere (`LC_TIME` = en_GB: taskbar, lock and login screens, apps, `date`; short dates become day/month); the default-browser (LibreWolf) launcher unpinned from the taskbar; README screenshot updated. |

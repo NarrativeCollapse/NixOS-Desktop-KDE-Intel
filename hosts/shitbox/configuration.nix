@@ -1,10 +1,24 @@
-{ lib, ... }@args:
+{
+  config,
+  lib,
+  pkgs,
+  modulesPath,
+  ...
+}:
 
 let
   # Read the LUKS device names from the generated hardware configuration, so
   # the setting below follows the disk after a reinstall (which gives it a
-  # new UUID) instead of naming one that no longer exists.
-  hardware = import ./hardware-configuration.nix args;
+  # new UUID) instead of naming one that no longer exists. (NixOS passes a
+  # module only the arguments it names, hence the explicit list above.)
+  hardware = import ./hardware-configuration.nix {
+    inherit
+      config
+      lib
+      pkgs
+      modulesPath
+      ;
+  };
 in
 {
   imports = [

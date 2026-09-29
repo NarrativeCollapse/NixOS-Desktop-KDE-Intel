@@ -20,8 +20,8 @@
 let
   repoUrl = "https://github.com/NarrativeCollapse/NixOS-Desktop-KDE-Intel.git";
 
-  # The config this ISO was built from, copied into the ISO. The GitHub repo
-  # is private, so the installer can't count on cloning it.
+  # The config this ISO was built from, copied into the ISO: the fallback
+  # when GitHub can't be reached (the installer normally clones the latest).
   snapshot = "/etc/shitbox-config";
   snapshotRev = self.shortRev or self.dirtyShortRev or "unknown";
 
@@ -136,13 +136,13 @@ let
       dest=/mnt/home/austin/nixos-config
       mkdir -p /mnt/home/austin
       cloned=0
-      if confirm "Clone the config from GitHub? (The repo is private: needs your username and a personal access token. No uses the copy on this USB stick.)"; then
-        if git clone "${repoUrl}" "$dest"; then
-          cloned=1
-        else
-          echo "Cloning failed; using the copy on this USB stick instead."
-          rm -rf "$dest"
-        fi
+      echo "Downloading the latest config from GitHub..."
+      if GIT_TERMINAL_PROMPT=0 git clone --quiet "${repoUrl}" "$dest"; then
+        cloned=1
+        echo "Using $(git -C "$dest" log -1 --format='%h: %s')"
+      else
+        echo "Couldn't reach GitHub; using the copy on this USB stick (${version})."
+        rm -rf "$dest"
       fi
       if [ "$cloned" -eq 0 ]; then
         cp -rL --no-preserve=mode "${snapshot}" "$dest"
@@ -165,12 +165,14 @@ let
 
       echo
       echo "Done. shitbox is installed on $disk."
+      echo "The new hardware configuration is committed in ~/nixos-config but not"
+      echo "pushed; after logging in to GitHub on the laptop, run: cd ~/nixos-config && git push"
       if [ "$cloned" -eq 0 ]; then
         cat <<'NEXT'
 
       The config in ~/nixos-config is the copy from this USB stick, not yet
       connected to GitHub. After the first login, see "Reinstalling" in its
-      README.md to connect it (and push the new hardware configuration).
+      README.md to connect it.
       NEXT
       fi
       if confirm "Reboot now? (Remove the USB stick when the screen goes dark.)"; then
