@@ -6,11 +6,12 @@ Plasma 6.
 
 **Current version: v43** (git tag `v43`). See [Versions](#versions).
 
-<img src="docs/screenshots/desktop.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock" width="820">
+<img src="docs/screenshots/desktop-v43.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
 <sub>An example of the desktop this config sets up: Breeze Dark, the default
 wallpaper, the welcome banner in Konsole, the white NixOS snowflake as the
-app launcher, Google Chrome pinned to the taskbar, and the 24-hour clock. It's a rendered mockup, not a photo of the laptop; the real
+app launcher, Google Chrome pinned to the taskbar, and the 24-hour clock
+with a military-style date. It's a rendered mockup, not a photo of the laptop; the real
 taskbar icons, tray and exact layout may differ.</sub>
 
 ## What's in it
