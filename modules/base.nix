@@ -52,9 +52,11 @@
 
   time.timeZone = "America/Chicago";
 
-  # Every LC_* category follows this unless overridden, e.g.
-  # i18n.extraLocaleSettings.LC_TIME = "en_GB.UTF-8" for a 24-hour clock.
+  # US English, except times: British English gives the 24-hour clock
+  # everywhere (taskbar, lock and login screens, apps, `date`). It also
+  # makes short dates day/month (29/09/2026).
   i18n.defaultLocale = "en_US.UTF-8";
+  i18n.extraLocaleSettings.LC_TIME = "en_GB.UTF-8";
 
   ################################
   # nixpkgs config

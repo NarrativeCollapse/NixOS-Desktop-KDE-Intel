@@ -4,13 +4,13 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v40** (git tag `v40`). See [Versions](#versions).
+**Current version: v41** (git tag `v41`). See [Versions](#versions).
 
-<img src="docs/screenshots/desktop.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with System Settings, Dolphin, the browser, Google Chrome (pinned, tooltip shown) and Konsole" width="820">
+<img src="docs/screenshots/desktop.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with System Settings, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock" width="820">
 
 <sub>An example of the desktop this config sets up: Breeze Dark, the default
-wallpaper, the welcome banner in Konsole, and Google Chrome pinned to the
-taskbar. It's a rendered mockup, not a photo of the laptop; the real
+wallpaper, the welcome banner in Konsole, Google Chrome pinned to the
+taskbar, and the 24-hour clock. It's a rendered mockup, not a photo of the laptop; the real
 taskbar icons, tray and exact layout may differ.</sub>
 
 ## What's in it
@@ -21,7 +21,8 @@ taskbar icons, tray and exact layout may differ.</sub>
   Plasma/Konsole settings in the config (plasma-manager); extra wallpapers
   built into the system, with one set on the desktop, lock and login
   screens; Bluetooth via Plasma's BlueDevil; printing with automatic
-  network-printer discovery (Avahi/mDNS); Noto + JetBrains Mono Nerd Font.
+  network-printer discovery (Avahi/mDNS); Noto + JetBrains Mono Nerd Font;
+  24-hour time throughout.
   Plasma defaults nothing here uses are left out (see `modules/desktop.nix`):
   the Orca screen reader and text-to-speech, the KDE PIM backend (Akonadi),
   the X11 session, Elisa, the Help Center, the remote desktop server, the
@@ -472,13 +473,22 @@ What it sets now:
   `modules/desktop.nix`; see [Wallpapers](#wallpapers)).
 - **Konsole**: a profile named "NixOS" (Breeze colors, JetBrainsMono Nerd
   Font Mono 11), made Konsole's default.
-- **Google Chrome pinned to the taskbar.** Declaring the panel itself would
-  replace your whole panel layout, so instead a small Plasma script
-  (`pin-chrome` in `plasma.nix`) finds your existing taskbar and adds the
-  Chrome launcher to it, touching nothing else. It runs at the first login
-  after a rebuild that changes it, so if you unpin Chrome by hand later, it
-  stays unpinned. The icon appears once the Chrome Flatpak has finished
-  installing (in the background, after the first boot of the new version).
+- **Taskbar tweaks.** Declaring the panel itself would replace your whole
+  panel layout, so instead a small Plasma script (`taskbar` in
+  `plasma.nix`) edits the existing taskbar, touching nothing else:
+  - pins **Google Chrome** (the Flatpak). The icon appears once the Chrome
+    Flatpak has finished installing, in the background after the first
+    boot of the new version;
+  - unpins Plasma's **default web browser** launcher, the globe-like icon
+    that opens LibreWolf. LibreWolf stays installed and in the app menu;
+  - sets the taskbar clock to **24-hour** time. The whole system uses
+    24-hour time too (lock and login screens, apps, `date`), via
+    `i18n.extraLocaleSettings.LC_TIME = "en_GB.UTF-8"` in
+    `modules/base.nix`; that also makes short dates day/month
+    (29/09/2026). Delete that line to go back to 12-hour US time.
+
+  It runs at the first login after a rebuild that changes it, so changes
+  you make to the taskbar by hand afterwards stay.
 - It explicitly writes nothing to KRunner's web-shortcut settings, which
   plasma-manager would otherwise reset.
 
@@ -566,7 +576,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v40** | Google Chrome pinned to the taskbar (added to the existing panel, nothing else changed); example desktop screenshot at the top of the README. |
+| **v41** | 24-hour time everywhere (`LC_TIME` = en_GB: taskbar, lock and login screens, apps, `date`; short dates become day/month); the default-browser (LibreWolf) launcher unpinned from the taskbar; README screenshot updated. |
+| v40 | Google Chrome pinned to the taskbar (added to the existing panel, nothing else changed); example desktop screenshot at the top of the README. |
 | v39 | Discover removed: Bazaar is the app store, `update` handles Flatpak and firmware updates, and there's no more update-notifier pop-up. |
 | v38 | Leaner: Wayland only (no X11 session), and the unused Plasma Help Center, remote desktop server, QR scanner and touch keyboard, plus vifm and wget, removed. Welcome banner skipped inside containers. Backups: each check re-reads 2% of the data, and `backup-test` does a real test restore. |
 | v37 | Flatpak: Bazaar, the Flathub app store Bazzite and Bluefin use. |

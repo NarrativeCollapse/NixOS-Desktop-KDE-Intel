@@ -19,27 +19,34 @@
     theme = "breeze-dark";
   };
 
-  # Pin Google Chrome (the Flatpak, see modules/desktop.nix) to the taskbar.
-  # Declaring the panel in plasma-manager would replace your whole panel
-  # layout, so instead this small Plasma script finds the existing taskbar
-  # and adds the Chrome launcher to it, leaving everything else alone. It
-  # runs at the first login after a rebuild that changes it, so if you unpin
-  # Chrome by hand later, it stays unpinned.
-  programs.plasma.startup.desktopScript.pin-chrome.text = ''
-    const launcher = "applications:com.google.Chrome.desktop";
+  # Taskbar tweaks, made by a small Plasma script on the existing panel
+  # (declaring the panel in plasma-manager would replace your whole layout):
+  # - pin Google Chrome (the Flatpak, see modules/desktop.nix);
+  # - unpin the "default web browser" launcher (LibreWolf; still installed
+  #   and in the app menu);
+  # - the taskbar clock always uses 24-hour time (the system does too; see
+  #   LC_TIME in modules/base.nix).
+  # It runs at the first login after a rebuild that changes it, so changes
+  # you make by hand afterwards stay.
+  programs.plasma.startup.desktopScript.taskbar.text = ''
+    const pin = "applications:com.google.Chrome.desktop";
+    const unpin = "preferred://browser";
     for (const panel of panels()) {
       for (const widget of panel.widgets()) {
-        if (widget.type !== "org.kde.plasma.icontasks" && widget.type !== "org.kde.plasma.taskmanager") {
-          continue;
-        }
-        widget.currentConfigGroup = ["General"];
-        let launchers = widget.readConfig("launchers", []);
-        if (typeof launchers === "string") {
-          launchers = launchers ? launchers.split(",") : [];
-        }
-        if (!launchers.includes(launcher)) {
-          launchers.push(launcher);
+        if (widget.type === "org.kde.plasma.icontasks" || widget.type === "org.kde.plasma.taskmanager") {
+          widget.currentConfigGroup = ["General"];
+          let launchers = widget.readConfig("launchers", []);
+          if (typeof launchers === "string") {
+            launchers = launchers ? launchers.split(",") : [];
+          }
+          launchers = launchers.filter((l) => l !== unpin);
+          if (!launchers.includes(pin)) {
+            launchers.push(pin);
+          }
           widget.writeConfig("launchers", launchers);
+        } else if (widget.type === "org.kde.plasma.digitalclock") {
+          widget.currentConfigGroup = ["Appearance"];
+          widget.writeConfig("use24hFormat", 2);
         }
       }
     }
