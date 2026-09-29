@@ -19,6 +19,32 @@
     theme = "breeze-dark";
   };
 
+  # Pin Google Chrome (the Flatpak, see modules/desktop.nix) to the taskbar.
+  # Declaring the panel in plasma-manager would replace your whole panel
+  # layout, so instead this small Plasma script finds the existing taskbar
+  # and adds the Chrome launcher to it, leaving everything else alone. It
+  # runs at the first login after a rebuild that changes it, so if you unpin
+  # Chrome by hand later, it stays unpinned.
+  programs.plasma.startup.desktopScript.pin-chrome.text = ''
+    const launcher = "applications:com.google.Chrome.desktop";
+    for (const panel of panels()) {
+      for (const widget of panel.widgets()) {
+        if (widget.type !== "org.kde.plasma.icontasks" && widget.type !== "org.kde.plasma.taskmanager") {
+          continue;
+        }
+        widget.currentConfigGroup = ["General"];
+        let launchers = widget.readConfig("launchers", []);
+        if (typeof launchers === "string") {
+          launchers = launchers ? launchers.split(",") : [];
+        }
+        if (!launchers.includes(launcher)) {
+          launchers.push(launcher);
+          widget.writeConfig("launchers", launchers);
+        }
+      }
+    }
+  '';
+
   # plasma-manager's web-search-keywords module always writes KRunner's web
   # shortcut settings, including an empty "preferred shortcuts" list that
   # would reset your choices in System Settings. Write nothing there instead.
