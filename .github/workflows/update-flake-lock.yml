@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Disk space, Nix, and the cache of packages CI builds itself.
+      # Frees disk space and installs Nix.
       - uses: ./.github/actions/setup-nix
 
       - name: Update inputs
@@ -63,15 +63,6 @@ jobs:
 
       - name: Clean up
         run: rm -f update.log
-
-      # Keep this run's newly built packages for the next run (see
-      # .github/actions/setup-nix). Saved even after a failure, so work done
-      # before it isn't repeated.
-      - uses: actions/cache/save@v5
-        if: always()
-        with:
-          path: ${{ runner.temp }}/nix-cache
-          key: nix-build-cache-${{ github.run_id }}
 
       - uses: peter-evans/create-pull-request@v8
         if: steps.update.outputs.changed == 'true'

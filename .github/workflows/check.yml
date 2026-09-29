@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Disk space, Nix, and the cache of packages CI builds itself.
+      # Frees disk space and installs Nix.
       - uses: ./.github/actions/setup-nix
 
       # Format, statix, deadnix, README version, and evaluation of the system.
@@ -31,12 +31,3 @@ jobs:
       # Evaluating isn't building: this catches packages that fail to build.
       - name: Build the system
         run: nix build --print-build-logs --no-link .#nixosConfigurations.shitbox.config.system.build.toplevel
-
-      # Keep this run's newly built packages for the next run (see
-      # .github/actions/setup-nix). Saved even after a failure, so work done
-      # before it isn't repeated.
-      - uses: actions/cache/save@v5
-        if: always()
-        with:
-          path: ${{ runner.temp }}/nix-cache
-          key: nix-build-cache-${{ github.run_id }}

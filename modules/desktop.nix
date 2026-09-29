@@ -21,6 +21,13 @@
 
   services.desktopManager.plasma6.enable = true;
 
+  # Use the stock Xwayland from cache.nixos.org instead of compiling it.
+  # NixOS otherwise sets Xwayland's built-in X11 font path, which changes
+  # the package so that every nixpkgs update recompiles it (minutes on a
+  # laptop). Only old X11 apps that use core X fonts (not fontconfig) are
+  # affected, and nothing here uses them.
+  programs.xwayland.defaultFontPath = "";
+
   # Extra wallpapers: the images in wallpapers/ at the repo root, installed
   # where Plasma's wallpaper picker lists them next to the stock ones. Add
   # or remove an image there and rebuild.

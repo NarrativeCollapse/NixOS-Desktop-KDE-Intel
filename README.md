@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v33** (git tag `v33`). See [Versions](#versions).
+**Current version: v34** (git tag `v34`). See [Versions](#versions).
 
 ## What's in it
 
@@ -52,7 +52,7 @@ statix.toml                      statix lint config
 wallpapers/                      extra wallpapers installed system-wide
 CLAUDE.md                        rules for AI-assisted changes (checks, versioning)
 docs/screenshots/                images used in this README
-.github/actions/setup-nix/       CI setup shared by both workflows (Nix + build cache)
+.github/actions/setup-nix/       CI setup shared by both workflows (disk space + Nix)
 .github/workflows/
   check.yml                      CI: nix flake check + full system build
   update-flake-lock.yml          flake.lock update pull request (run by hand)
@@ -450,14 +450,12 @@ Two GitHub Actions workflows live in `.github/workflows/`:
   Actions bot opens until you click **Approve and run**. That's optional,
   since the same check and build already passed before the PR was opened.
 
-**Build cache.** Nearly everything downloads prebuilt from cache.nixos.org.
-The one slow exception is Xwayland, which NixOS rebuilds with the system's
-X11 font path, at about 2.5 minutes a run. Both workflows keep that build,
-with the packages it depends on (about 130 MB compressed), in a binary
-cache stored with GitHub's Actions cache, so a later run downloads it
-instead of compiling it again. It resets itself past 2 GB, and GitHub drops
-entries unused for a week. The setup lives in
-`.github/actions/setup-nix/action.yml`; nothing needs configuring.
+**Nothing slow is compiled.** Everything heavy downloads prebuilt from
+cache.nixos.org; CI (and the laptop) only build small config files. The
+one former exception, Xwayland, is now the stock package: see
+`programs.xwayland.defaultFontPath` in `modules/desktop.nix`. Both
+workflows share their setup (disk space, Nix) through
+`.github/actions/setup-nix/action.yml`.
 
 One-time GitHub setting for the update workflow: Settings → Actions →
 General → Workflow permissions → tick **Allow GitHub Actions to create and
@@ -491,7 +489,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v33** | Welcome banner: a small black-and-white NixOS logo beside the heading and system lines. |
+| **v34** | Xwayland is the stock prebuilt package instead of being recompiled after every nixpkgs update (its legacy X11 core-font path is no longer set). CI's build cache, now with nothing slow to cache, is removed. |
+| v33 | Welcome banner: a small black-and-white NixOS logo beside the heading and system lines. |
 | v32 | Updates only when you ask: new `update` menu (system, Flatpak, Homebrew) that shows what would change and applies it on a yes; the system part bumps, tags and pushes the version itself. Homebrew's daily job, Flatpak's weekly auto-update and the weekly GitHub update PR are off. |
 | v31 | Slimmed down: Ghostty removed (Konsole is the terminal again), and Plasma's Orca screen reader, speech-dispatcher and KDE PIM backend (Akonadi) turned off, about 1.1 GB less. |
 | v30 | Nix channels turned off (flakes only; `nix-shell -p` and `<nixpkgs>` use the system's nixpkgs); htop and btop removed (Plasma's System Monitor covers it). CI keeps the packages it builds itself (mainly Xwayland) in a build cache between runs. |
