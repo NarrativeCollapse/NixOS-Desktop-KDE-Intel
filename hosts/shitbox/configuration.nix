@@ -12,6 +12,7 @@ _:
     ../../modules/backup.nix
     ../../modules/homebrew.nix
     ../../modules/notify-failure.nix
+    ../../modules/updates.nix
   ];
 
   networking.hostName = "shitbox";

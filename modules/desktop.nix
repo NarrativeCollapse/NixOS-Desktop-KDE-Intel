@@ -57,7 +57,8 @@
 
   # Managed by nix-flatpak (flake input): the Flathub remote and the apps
   # listed below are installed by flatpak-managed-install.service at boot and
-  # after each rebuild, retried with backoff while offline.
+  # after each rebuild, retried with backoff while offline. Apps are never
+  # updated automatically; `update` ([f]) does that when you choose.
   services.flatpak = {
     enable = true;
     # Flathub is the default remote. Add apps by ID, e.g.
@@ -68,10 +69,6 @@
     # true once everything you want is listed above to make this list the
     # source of truth, like the Brewfile.
     uninstallUnmanaged = false;
-    update.auto = {
-      enable = true;
-      onCalendar = "weekly";
-    };
     restartOnFailure.exponentialBackoff.enable = true;
   };
 

@@ -1,4 +1,5 @@
-"""Bump the config version for a flake.lock update.
+"""Bump the config version for a flake.lock update (used by `update-system`
+on the laptop and by the manual Update flake.lock workflow).
 
 Usage: bump-version.py <update.log>
 
@@ -20,7 +21,7 @@ new = cur + 1
 flake.write_text(text.replace(f'version = "v{cur}";', f'version = "v{new}";', 1))
 
 inputs = sorted(set(re.findall(r"Updated input '([^']+)'", Path(sys.argv[1]).read_text())))
-row = f"| **v{new}** | Weekly `flake.lock` update: {', '.join(inputs) or 'inputs'}. |"
+row = f"| **v{new}** | `flake.lock` update: {', '.join(inputs) or 'inputs'}. |"
 
 lines = readme.read_text().splitlines(keepends=True)
 out = []

@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v31** (git tag `v31`). See [Versions](#versions).
+**Current version: v32** (git tag `v32`). See [Versions](#versions).
 
 ## What's in it
 
@@ -38,8 +38,10 @@ Plasma 6.
   weekly cleanup (keeps 14 days and at least 5 generations), weekly store
   deduplication, daily restic backups of
   `/home` (needs the one-time setup below) with a desktop warning when they
-  go stale, and GitHub Actions that build every push and propose weekly
-  updates (see [CI](#ci)).
+  go stale, and GitHub Actions that build every push (see [CI](#ci)).
+- **Updates:** nothing updates on its own. `update` checks the system,
+  Flatpak apps and Homebrew tools, shows what would change, and applies it
+  only when you say yes (see [Updates](#updates)).
 
 ## Layout
 
@@ -52,7 +54,7 @@ CLAUDE.md                        rules for AI-assisted changes (checks, versioni
 .github/actions/setup-nix/       CI setup shared by both workflows (Nix + build cache)
 .github/workflows/
   check.yml                      CI: nix flake check + full system build
-  update-flake-lock.yml          weekly flake.lock update pull request
+  update-flake-lock.yml          flake.lock update pull request (run by hand)
   bump-version.py                version bump used by the update workflow
 hosts/shitbox/
   configuration.nix              host: hostname + stateVersion + imports
@@ -64,8 +66,9 @@ modules/
   gaming.nix                     Steam, Proton-GE, gamescope, GameMode, xpadneo
   shell.nix                      user, sudo, podman, system packages, zsh
   backup.nix                     restic job for /home (needs one-time setup)
-  homebrew.nix                   Homebrew install, PATH, completions, daily `brew bundle`
+  homebrew.nix                   Homebrew PATH, completions, `brew-update`
   notify-failure.nix             desktop notification when a background job fails
+  updates.nix                    `update` menu: system, Flatpak and Homebrew updates
 home/austin/home.nix             zsh, starship, git, neovim, mangohud
 home/austin/bling.nix            Bazzite-style MOTD, fastfetch, CLI tools + aliases
 home/austin/plasma.nix           Plasma/KDE settings via plasma-manager (Konsole profile)
@@ -89,7 +92,7 @@ sudo nixos-rebuild switch --flake .#shitbox
 | Task | Command |
 | --- | --- |
 | Rebuild after editing | `rebuild` or `nh os switch` (works from any directory) |
-| Update the system | Merge the weekly "Update flake.lock" pull request on GitHub (tested and version-bumped), then `git pull && rebuild` |
+| Update the system, Flatpaks or Homebrew tools | `update`, then pick (see [Updates](#updates)) |
 | Roll back a bad rebuild | `sudo nixos-rebuild switch --rollback`, or pick an older entry in the boot menu |
 | Format the tree | `nix fmt` |
 | Lint + evaluate | `nix flake check` |
@@ -107,6 +110,55 @@ changes.
 
 In Neovim the leader key is Space: `<Space>ff` finds files, `<Space>fg`
 searches text, `<Space>fb` lists open buffers.
+
+## Updates
+
+Nothing updates on its own. Run `update` (it's in the welcome banner)
+whenever you want to check:
+
+```
+  Updates
+  ───────
+  [s] System (NixOS)   check, show changes, ask to apply
+  [f] Flatpak apps
+  [b] Homebrew tools
+  [a] All of the above
+  [q] Quit
+```
+
+Or skip the menu: `update system`, `update flatpak`, `update brew`,
+`update all`. Each part asks before it changes anything.
+
+- **[s] System** (`update-system`, in `modules/updates.nix`):
+  1. Runs `git pull` in `~/nixos-config`, so changes pushed from elsewhere
+     come first. It stops if `flake.lock`, `flake.nix` or `README.md` has
+     uncommitted edits.
+  2. Runs `nix flake update`. If nothing is newer, it says so and stops.
+  3. Bumps the config version (`flake.nix`, the README's "Current version"
+     and a Versions row naming the updated inputs) and commits it locally.
+  4. Builds the new system without activating it, and lists every package
+     whose version changes, plus the change in total size (`nvd`).
+  5. Asks **Apply vN now?** On yes it switches to the new system (sudo
+     password), tags the commit `vN`, and pushes the commit and tag to
+     GitHub. On no, or if the build fails, the commit is undone and the
+     repo is exactly as it was.
+
+  If pushing fails (for example, no GitHub login on the laptop), the update
+  is still applied, and it prints the two commands to push later.
+- **[f] Flatpak** runs `flatpak update`, which lists pending updates and
+  asks before installing them. System-wide apps may ask for your password.
+- **[b] Homebrew** (`brew-update`, in `modules/homebrew.nix`) installs
+  Homebrew the first time (after asking), runs `brew update`, then lists
+  formulas that are missing, outdated, or installed but not in the
+  Brewfile, and installs, upgrades and removes them to match only on a
+  yes.
+
+Still scheduled, because none of them change what's installed: nh's weekly
+cleanup of old generations, weekly store deduplication, the daily backup,
+fwupd's refresh of firmware metadata (firmware itself only installs through
+`fwupdmgr update` or Discover), and tldr's page cache. Discover may still
+show an "updates available" notification; it doesn't install anything
+unless you click it.
 
 ## Terminal (Bazzite-style)
 
@@ -281,20 +333,17 @@ the main reason: it breaks whenever video sites change.
 
 - `/home/linuxbrew` is created for you, owned by you, so brew never needs
   sudo.
-- A user timer (`brew-bundle`, ~5 minutes after login and daily) installs
-  Homebrew on its first run, then makes the installed formulas match
-  `/Brewfile`: installs missing ones, upgrades outdated ones, and
-  **uninstalls anything not listed**. The Brewfile is the source of truth,
-  like the rest of the config, so add tools there rather than with
-  `brew install`, which the next run would undo.
+- `brew-update` (or [b] in `update`) installs Homebrew the first time,
+  then makes the installed formulas match `/Brewfile` when you confirm:
+  installs missing ones, upgrades outdated ones, and **uninstalls anything
+  not listed**. The Brewfile is the source of truth, like the rest of the
+  config, so add tools there rather than with `brew install`, which the
+  next `brew-update` would offer to remove. Nothing runs on a timer.
 - brew's `bin` goes at the end of `PATH`, so if a brew dependency has the
   same name as a Nix tool (python3, git, curl…), the Nix one wins.
 - `programs.nix-ld` is enabled because brew's prebuilt binaries expect the
   standard Linux loader at `/lib64`, which NixOS doesn't have otherwise.
 - Analytics are off (`HOMEBREW_NO_ANALYTICS=1`).
-- With no network the run is skipped quietly until the next one; a run that
-  fails while online raises a desktop notification
-  ([Failure alerts](#failure-alerts)).
 - Tab completion works for brew and its tools (`gh <Tab>`, `rg --<Tab>`):
   brew's zsh completion directory is added before zsh initializes
   completions.
@@ -303,13 +352,13 @@ the main reason: it breaks whenever video sites change.
 
 | Task | Command |
 | --- | --- |
-| Add or remove a tool | Edit `/Brewfile`, commit, `rebuild`, then `systemctl --user start brew-bundle` (or wait for the daily run) |
-| See what the last run did | `journalctl --user -u brew-bundle` |
-| Update brew tools now | `systemctl --user start brew-bundle` |
+| Add or remove a tool | Edit `/Brewfile`, commit, `rebuild`, then `brew-update` |
+| Update brew tools | `brew-update` (or `update`, then [b]) |
 | Check brew's health | `brew doctor` |
 
 **Trade-offs to know:** brew-installed tools aren't covered by NixOS
-rollbacks or CI, and a bad upstream release reaches you the next day. To
+rollbacks or CI, and a bad upstream release reaches you as soon as you
+update. To
 move a tool back to Nix, delete it from the Brewfile and add it to
 `home.packages` in `home/austin/bling.nix`.
 
@@ -329,8 +378,8 @@ services.flatpak.packages = [
 - Flathub is configured automatically. Listed apps are installed at boot, and
   after a rebuild that changes the list, by `flatpak-managed-install.service`,
   which retries with a growing delay while offline.
-- Listed apps are updated weekly. Apps installed by hand keep updating the
-  usual way (Discover or `flatpak update`).
+- Nothing updates automatically: `update` ([f]) runs `flatpak update` for
+  listed and hand-installed apps alike, and asks first.
 - The list starts empty, and `uninstallUnmanaged = false` leaves apps you
   installed by hand (Discover, `flatpak install`) alone. Once every app you
   want is listed, set it to `true` to make the list authoritative; unlisted
@@ -378,7 +427,6 @@ jobs use to raise a critical desktop notification when they fail, with the
 
 - `restic-backups-home` (system job; the alert goes to your session if
   you're logged in)
-- `brew-bundle` (user job)
 
 To attach it to another service: `onFailure = [ "notify-failure@%n.service" ];`.
 
@@ -391,13 +439,14 @@ Two GitHub Actions workflows live in `.github/workflows/`:
   build shows up on GitHub before you rebuild the laptop. Results are on the
   repository's Actions tab. A newer push cancels an older run still in
   progress.
-- **Update flake.lock** (Mondays, or run it by hand from the Actions tab):
-  runs `nix flake update` and, if anything changed, bumps the config version
+- **Update flake.lock** (only when run by hand from the Actions tab;
+  normally `update` does this on the laptop): runs `nix flake update` and,
+  if anything changed, bumps the config version
   (flake.nix, the "Current version" line and a Versions row, via
   `.github/workflows/bump-version.py`), checks and builds the result, and
   only then opens a pull request listing what changed. After merging it,
-  run `git pull && rebuild` on the laptop and tag the merge commit. Weeks
-  with no updates open no pull request. The pull request's own Check run
+  run `git pull && rebuild` on the laptop and tag the merge commit. No
+  updates, no pull request. The pull request's own Check run
   shows "action required": GitHub holds workflow runs on pull requests the
   Actions bot opens until you click **Approve and run**. That's optional,
   since the same check and build already passed before the PR was opened.
@@ -443,7 +492,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v31** | Slimmed down: Ghostty removed (Konsole is the terminal again), and Plasma's Orca screen reader, speech-dispatcher and KDE PIM backend (Akonadi) turned off, about 1.1 GB less. |
+| **v32** | Updates only when you ask: new `update` menu (system, Flatpak, Homebrew) that shows what would change and applies it on a yes; the system part bumps, tags and pushes the version itself. Homebrew's daily job, Flatpak's weekly auto-update and the weekly GitHub update PR are off. |
+| v31 | Slimmed down: Ghostty removed (Konsole is the terminal again), and Plasma's Orca screen reader, speech-dispatcher and KDE PIM backend (Akonadi) turned off, about 1.1 GB less. |
 | v30 | Nix channels turned off (flakes only; `nix-shell -p` and `<nixpkgs>` use the system's nixpkgs); htop and btop removed (Plasma's System Monitor covers it). CI keeps the packages it builds itself (mainly Xwayland) in a build cache between runs. |
 | v29 | Fix: desktop alerts for failed system jobs (the backup) never appeared, because the alert ran `sh`, which isn't on a service's PATH. CI moved to Node 24 actions (checkout v7, create-pull-request v8), a read-only token, and cancels superseded runs. |
 | v28 | Weekly `flake.lock` update: nixpkgs. |

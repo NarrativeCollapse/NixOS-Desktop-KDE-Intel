@@ -48,8 +48,8 @@ let
 
     | Command | Description |
     | ------- | ----------- |
+    | `update` | Check for system, Flatpak and Homebrew updates; you choose what to apply |
     | `rebuild` | Apply changes from ~/nixos-config |
-    | `git pull && rebuild` | Update, after merging the weekly flake.lock pull request |
     | `nix search nixpkgs <name>` | Find a package |
     | `, <command>` | Run a command without installing it |
     | `fastfetch` | View system information |

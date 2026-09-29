@@ -3,12 +3,12 @@
 # Desktop notifications when a background job fails, so failures don't sit
 # unseen in the journal. Attach to a unit with
 #   onFailure = [ "notify-failure@%n.service" ];
-# (system units and user units each have their own template below).
+# (system units only; no user units use it at the moment).
 let
   # The notify-send call; $1 is the failed unit's name (scriptArgs = "%i").
-  notify = unitsFlag: ''
+  notify = ''
     notify-send --urgency=critical --app-name=systemd --icon=dialog-error \
-      "$1 failed" "See what happened: journalctl ${unitsFlag}-u $1"
+      "$1 failed" "See what happened: journalctl -u $1"
   '';
 in
 {
@@ -30,15 +30,7 @@ in
       bus=/run/user/$uid/bus
       [ -S "$bus" ] || exit 0
       runuser -u austin -- env DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" \
-        ${notify ""}
+        ${notify}
     '';
-  };
-
-  systemd.user.services."notify-failure@" = {
-    description = "Desktop notification that %i failed";
-    serviceConfig.Type = "oneshot";
-    scriptArgs = "%i";
-    path = [ pkgs.libnotify ];
-    script = notify "--user ";
   };
 }

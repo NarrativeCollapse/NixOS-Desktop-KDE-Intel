@@ -39,64 +39,81 @@ in
     HOMEBREW_NO_ENV_HINTS = "1";
   };
 
-  # Installs Homebrew on first run, then makes the installed formulas match
-  # /Brewfile: installs missing ones, upgrades outdated ones, and removes
-  # ones that aren't listed (so the Brewfile stays the source of truth).
-  systemd.user.services.brew-bundle = {
-    description = "Apply the Brewfile from the NixOS config";
-    unitConfig.ConditionUser = "austin";
-    serviceConfig.Type = "oneshot";
-    # Offline runs are skipped (see the script), so a failure here is real:
-    # raise a desktop notification (modules/notify-failure.nix).
-    onFailure = [ "notify-failure@%n.service" ];
-    environment = {
-      HOMEBREW_NO_ANALYTICS = "1";
-      HOMEBREW_NO_ENV_HINTS = "1";
-    };
-    path = with pkgs; [
-      bash
-      coreutils
-      curl
-      file
-      findutils
-      gawk
-      git
-      glibc.bin # ldd, which brew uses to read the glibc version
-      gnugrep
-      gnused
-      gnutar
-      gzip
-      procps
-      which
-      xz
-    ];
-    script = ''
-      if ! curl -fsSI --max-time 15 -o /dev/null https://github.com; then
-        echo "No network; skipping until the next run."
-        exit 0
-      fi
-      if [ ! -d ${prefix}/Homebrew ]; then
-        echo "Installing Homebrew into ${prefix}"
-        # Clone beside the final path so an interrupted clone isn't mistaken
-        # for an installed Homebrew on the next run.
-        rm -rf ${prefix}/Homebrew.partial
-        git clone https://github.com/Homebrew/brew ${prefix}/Homebrew.partial
-        mv ${prefix}/Homebrew.partial ${prefix}/Homebrew
-      fi
-      mkdir -p ${prefix}/bin
-      ln -sfn ../Homebrew/bin/brew ${prefix}/bin/brew
-      brew=${prefix}/bin/brew
-      "$brew" bundle install --file=${brewfile}
-      "$brew" bundle cleanup --force --file=${brewfile}
-    '';
-  };
-  systemd.user.timers.brew-bundle = {
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnStartupSec = "5min";
-      OnCalendar = "daily";
-      Persistent = true;
-      RandomizedDelaySec = "30min";
-    };
-  };
+  # `brew-update` (also [b] in the `update` menu): installs Homebrew the first
+  # time, then shows how the installed formulas differ from /Brewfile
+  # (missing, outdated, or not listed) and applies that only if you say yes.
+  # Nothing runs on a timer; tools change only when you run it.
+  environment.systemPackages = [
+    (pkgs.writeShellApplication {
+      name = "brew-update";
+      runtimeInputs = with pkgs; [
+        bash
+        coreutils
+        curl
+        file
+        findutils
+        gawk
+        git
+        glibc.bin # ldd, which brew uses to read the glibc version
+        gnugrep
+        gnused
+        gnutar
+        gzip
+        procps
+        which
+        xz
+      ];
+      text = ''
+        brew=${prefix}/bin/brew
+        brewfile=${brewfile}
+        confirm() {
+          local reply
+          read -r -p "$1 [y/N] " reply
+          [[ $reply == [yY]* ]]
+        }
+
+        if ! curl -fsSI --max-time 15 -o /dev/null https://github.com; then
+          echo "No network connection; can't check Homebrew for updates."
+          exit 1
+        fi
+
+        if [ ! -d ${prefix}/Homebrew ]; then
+          echo "Homebrew isn't installed yet."
+          confirm "Install it into ${prefix} now?" || exit 0
+          # Clone beside the final path so an interrupted clone isn't
+          # mistaken for an installed Homebrew next time.
+          rm -rf ${prefix}/Homebrew.partial
+          git clone https://github.com/Homebrew/brew ${prefix}/Homebrew.partial
+          mv ${prefix}/Homebrew.partial ${prefix}/Homebrew
+        fi
+        mkdir -p ${prefix}/bin
+        ln -sfn ../Homebrew/bin/brew ${prefix}/bin/brew
+
+        echo "Checking Homebrew for updates..."
+        "$brew" update --quiet
+        pending=$("$brew" bundle check --verbose --file="$brewfile" 2>&1 || true)
+        # Formulas not in the Brewfile (the dry run also lists download
+        # caches brew would clear; those aren't worth asking about).
+        extra=$("$brew" bundle cleanup --file="$brewfile" 2>/dev/null \
+          | sed -n '/^Would uninstall/,/^Would .brew cleanup/p' \
+          | grep -v '^Would .brew cleanup' || true)
+        if "$brew" bundle check --quiet --file="$brewfile" >/dev/null 2>&1 && [ -z "$extra" ]; then
+          echo "Homebrew tools are up to date."
+          exit 0
+        fi
+
+        echo
+        echo "$pending"
+        if [ -n "$extra" ]; then echo "$extra"; fi
+        echo
+        if ! confirm "Apply these Homebrew changes?"; then
+          echo "Nothing changed."
+          exit 0
+        fi
+        "$brew" bundle install --file="$brewfile"
+        "$brew" bundle cleanup --force --file="$brewfile"
+        echo "Homebrew tools updated."
+      '';
+    })
+  ];
 }

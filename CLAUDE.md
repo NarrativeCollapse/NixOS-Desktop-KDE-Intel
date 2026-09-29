@@ -18,8 +18,9 @@ enforces this). Each version also gets a git tag.
 
 - Bump the version by one in the same push as any change that affects the
   built system: packages, services, Home Manager config, the Brewfile,
-  flake inputs. (The weekly `flake.lock` update PR bumps it itself via
-  `.github/workflows/bump-version.py`; only tag it after merging.)
+  flake inputs. (`update-system` on the laptop, and the manual Update
+  flake.lock workflow, bump it themselves via
+  `.github/workflows/bump-version.py`; `update-system` also tags and pushes.)
 - Don't bump for docs, comments, CI, or lint config alone.
 - For a bump: change `version` in flake.nix, update "Current version" at the
   top of README.md, add a row at the top of its Versions table (one or two
