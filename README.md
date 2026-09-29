@@ -4,13 +4,13 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v35** (git tag `v35`). See [Versions](#versions).
+**Current version: v36** (git tag `v36`). See [Versions](#versions).
 
 ## What's in it
 
 - **Desktop:** Plasma 6 on SDDM (Wayland) in Breeze Dark, PipeWire,
   declarative Flatpak apps from Flathub (Chrome, VLC, Flatseal,
-  qBittorrent), Plasma/Konsole settings in the config (plasma-manager),
+  qBittorrent, ISO Image Writer), Plasma/Konsole settings in the config (plasma-manager),
   extra wallpapers built into the system with one set on the desktop, lock
   and login screens,
   Bluetooth via Plasma's BlueDevil, printing with automatic network-printer
@@ -395,7 +395,8 @@ services.flatpak.packages = [
 - Nothing updates automatically: `update` ([f]) runs `flatpak update` for
   listed and hand-installed apps alike, and asks first.
 - Listed now: Google Chrome, VLC, Flatseal (manages Flatpak app
-  permissions) and qBittorrent. `uninstallUnmanaged = false` leaves apps you
+  permissions), qBittorrent and KDE ISO Image Writer (writes ISO images to
+  USB sticks). `uninstallUnmanaged = false` leaves apps you
   installed by hand (Discover, `flatpak install`) alone. Once every app you
   want is listed, set it to `true` to make the list authoritative; unlisted
   apps are then removed.
@@ -519,7 +520,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v35** | `backup-setup` walks through the one-time backup setup (password, drive, first backup), and the backup drive's mount is enabled; `update` gains [w] firmware and [r] roll back; systemd-oomd closes runaway apps before the desktop freezes; Breeze Dark with `gas-masks` on the desktop, lock and login screens; Flatpaks: Chrome, VLC, Flatseal, qBittorrent. |
+| **v36** | Flatpak: KDE ISO Image Writer, for writing ISO images to USB sticks. |
+| v35 | `backup-setup` walks through the one-time backup setup (password, drive, first backup), and the backup drive's mount is enabled; `update` gains [w] firmware and [r] roll back; systemd-oomd closes runaway apps before the desktop freezes; Breeze Dark with `gas-masks` on the desktop, lock and login screens; Flatpaks: Chrome, VLC, Flatseal, qBittorrent. |
 | v34 | Xwayland is the stock prebuilt package instead of being recompiled after every nixpkgs update (its legacy X11 core-font path is no longer set). CI's build cache, now with nothing slow to cache, is removed. |
 | v33 | Welcome banner: a small black-and-white NixOS logo beside the heading and system lines. |
 | v32 | Updates only when you ask: new `update` menu (system, Flatpak, Homebrew) that shows what would change and applies it on a yes; the system part bumps, tags and pushes the version itself. Homebrew's daily job, Flatpak's weekly auto-update and the weekly GitHub update PR are off. |
