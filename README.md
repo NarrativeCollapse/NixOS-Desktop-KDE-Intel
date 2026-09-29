@@ -33,8 +33,10 @@ Plasma 6.
   banner, branded fastfetch, eza/atuin/zoxide/direnv and friends; see
   [Terminal](#terminal-bazzite-style)), Neovim (treesitter, telescope,
   gitsigns), git, Podman (Docker-compatible) + distrobox, LibreWolf.
-- **Maintenance:** nh for rebuilds and weekly cleanup (keeps 14 days and at
-  least 5 generations), weekly store deduplication, daily restic backups of
+- **Maintenance:** flakes only (no Nix channels; `nix-shell -p` and
+  `<nixpkgs>` use the same nixpkgs as the system), nh for rebuilds and
+  weekly cleanup (keeps 14 days and at least 5 generations), weekly store
+  deduplication, daily restic backups of
   `/home` (needs the one-time setup below) with a desktop warning when they
   go stale, and GitHub Actions that build every push and propose weekly
   updates (see [CI](#ci)).
