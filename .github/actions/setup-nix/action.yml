@@ -15,12 +15,14 @@ runs:
         sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
         df -h /
 
-    # Almost everything comes prebuilt from cache.nixos.org. The exceptions
-    # are packages this config changes: mainly Xwayland, which NixOS
-    # rebuilds with the system's X11 font path (over 2 minutes per run).
-    # The post-build hook copies each package built here, and only that
-    # package (not its dependencies), into a local binary cache that
-    # actions/cache carries between runs; the next run takes it from there.
+    # Almost everything comes prebuilt from cache.nixos.org. The exception
+    # worth caching is Xwayland, which NixOS rebuilds with the system's X11
+    # font path (about 2.5 minutes per run). The post-build hook copies it,
+    # with everything it depends on (~130 MB compressed; a binary cache only
+    # accepts a package whose dependencies it also holds), into a local
+    # binary cache that actions/cache carries between runs, so the next run
+    # downloads it instead. Every other local build is small config files
+    # that take seconds to rebuild, so the hook skips them.
     - uses: cachix/install-nix-action@v31
       with:
         extra_nix_config: |
@@ -48,10 +50,15 @@ runs:
         du -sh "$CACHE"
         # Runs as root in the Nix daemon after every local build. A failed
         # upload only means a slower next run, so it never fails the build.
+        # To cache another slow build, add its name to the case pattern.
         cat > "$HOOK" <<HOOK
         #!/bin/sh
         set -f
-        /nix/var/nix/profiles/default/bin/nix copy --no-recursive \\
+        case "\$OUT_PATHS" in
+          *-xwayland-*) ;;
+          *) exit 0 ;;
+        esac
+        /nix/var/nix/profiles/default/bin/nix copy \\
           --to 'file://$CACHE?compression=zstd' \$OUT_PATHS \\
           || echo "post-build-hook: caching \$OUT_PATHS failed (ignored)"
         HOOK

@@ -450,13 +450,13 @@ Two GitHub Actions workflows live in `.github/workflows/`:
   Actions bot opens until you click **Approve and run**. That's optional,
   since the same check and build already passed before the PR was opened.
 
-**Build cache.** Nearly everything downloads prebuilt from cache.nixos.org,
-but a few packages the config changes have to be built: mainly Xwayland,
-which NixOS rebuilds with the system's X11 font path, at over 2 minutes a
-run. Both workflows keep those locally built packages (and only those) in a
-small binary cache stored with GitHub's Actions cache, so a later run
-downloads them instead of rebuilding. It resets itself past 2 GB, and
-GitHub drops entries unused for a week. The setup lives in
+**Build cache.** Nearly everything downloads prebuilt from cache.nixos.org.
+The one slow exception is Xwayland, which NixOS rebuilds with the system's
+X11 font path, at about 2.5 minutes a run. Both workflows keep that build,
+with the packages it depends on (about 130 MB compressed), in a binary
+cache stored with GitHub's Actions cache, so a later run downloads it
+instead of compiling it again. It resets itself past 2 GB, and GitHub drops
+entries unused for a week. The setup lives in
 `.github/actions/setup-nix/action.yml`; nothing needs configuring.
 
 One-time GitHub setting for the update workflow: Settings → Actions →
