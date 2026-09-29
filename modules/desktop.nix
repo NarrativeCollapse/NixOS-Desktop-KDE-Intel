@@ -97,6 +97,17 @@
     kdePackages.elisa
   ];
 
+  # Plasma turns these on by default. Off here, since nothing on this
+  # machine uses them:
+  # - Orca screen reader and the speech-dispatcher text-to-speech service
+  #   (~770 MB). Turn both back on if you need a screen reader.
+  services.orca.enable = false;
+  services.speechd.enable = false;
+  # - The KDE PIM backend (Akonadi, ~380 MB), which only KDE's mail, contact
+  #   and calendar apps (none installed) and the clock's calendar-events
+  #   plugin use.
+  programs.kde-pim.enable = false;
+
   ################################
   # Environment variables
   ################################
