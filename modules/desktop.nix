@@ -94,6 +94,7 @@ in
       "com.github.tchx84.Flatseal" # manage Flatpak app permissions
       "org.qbittorrent.qBittorrent"
       "org.kde.isoimagewriter" # write ISO images to USB sticks
+      "io.github.kolunmi.Bazaar" # Flathub app store (as on Bazzite/Bluefin)
     ];
     # Leave apps installed by hand (Discover, `flatpak install`) alone. Set to
     # true once everything you want is listed above to make this list the
