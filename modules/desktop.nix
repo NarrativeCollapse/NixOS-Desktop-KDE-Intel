@@ -10,19 +10,20 @@ in
   # Desktop: Plasma 6 on SDDM
   ################################
 
-  services.xserver.enable = true;
-
+  # Wayland only: no X server and no "Plasma (X11)" session. X11 apps (and
+  # Steam) still run through Xwayland, which Plasma enables itself. To bring
+  # the X11 session back, set services.xserver.enable = true and remove
+  # kwin-x11 from the exclusions below.
   services.displayManager.sddm = {
     enable = true;
     wayland.enable = true;
   };
 
-  # NOTE: defaultSession is intentionally NOT pinned. With Plasma 6 Wayland +
-  # the gamescope session both registered, letting SDDM remember the last
-  # choice avoids silently falling back when a session name is wrong. If you
-  # ever want to force one, check the exact name first with:
+  # NOTE: defaultSession is intentionally NOT pinned. With Plasma 6 and the
+  # gamescope session both registered, letting SDDM remember the last choice
+  # avoids silently falling back when a session name is wrong. If you ever
+  # want to force one, check the exact name first with:
   #   ls /run/current-system/sw/share/wayland-sessions/
-  #   ls /run/current-system/sw/share/xsessions/
 
   services.desktopManager.plasma6.enable = true;
 
@@ -121,8 +122,15 @@ in
   # KDE / Plasma exclusions
   ################################
 
-  environment.plasma6.excludePackages = with pkgs; [
-    kdePackages.elisa
+  # Plasma apps and services installed by default that nothing here uses.
+  environment.plasma6.excludePackages = with pkgs.kdePackages; [
+    elisa # music player
+    kwin-x11 # the X11 session's window manager (Wayland only; see above)
+    khelpcenter # KDE Help Center
+    krdp # remote desktop (RDP) server
+    qrca # QR code scanner
+    plasma-keyboard # on-screen touch keyboard (the laptop has no touchscreen)
+    qtvirtualkeyboard
   ];
 
   # Plasma turns these on by default. Off here, since nothing on this

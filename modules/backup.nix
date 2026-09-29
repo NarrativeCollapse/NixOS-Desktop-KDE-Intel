@@ -80,9 +80,12 @@ in
       "--keep-monthly 6"
     ];
 
-    # `restic check` (repository structure/metadata) after every run, so
-    # corruption surfaces as a failed unit instead of at restore time.
+    # `restic check` after every run, so corruption surfaces as a failed unit
+    # instead of at restore time. Besides the repository structure, each run
+    # re-reads a random 2% of the stored data, so over weeks the file
+    # contents themselves are verified too (not just the index).
     runCheck = true;
+    checkOpts = [ "--read-data-subset=2%" ];
   };
 
   systemd.services."restic-backups-home" = {
@@ -129,9 +132,9 @@ in
     };
   };
 
-  # Plain restic CLI available regardless of the module's wrapper, and
-  # `backup-setup`, which walks through the one-time setup: the repository
-  # password, the backup drive, and the first backup.
+  # Plain restic CLI available regardless of the module's wrapper;
+  # `backup-setup`, which walks through the one-time setup (the repository
+  # password, the backup drive, and the first backup); and `backup-test`.
   environment.systemPackages = [
     pkgs.restic
     (pkgs.writeShellApplication {
@@ -232,6 +235,66 @@ in
         echo
         echo "Backups are set up. They run daily while the drive is mounted at /mnt/backup;"
         echo "after plugging it in later, mount it with: sudo mount /mnt/backup"
+      '';
+    })
+
+    # `backup-test [folder]`: a real test restore. Restores a folder
+    # (~/Documents by default) from the latest backup into a temporary
+    # directory, compares it with the files on disk now, and deletes it.
+    (pkgs.writeShellApplication {
+      name = "backup-test";
+      runtimeInputs = with pkgs; [
+        coreutils
+        diffutils
+        findutils
+        util-linux
+      ];
+      text = ''
+        dir=$(realpath -m "''${1:-$HOME/Documents}")
+        case $dir in
+          /home/austin | /home/austin/*) ;;
+          *)
+            echo "Pick a folder inside /home/austin (the backup only covers your home)."
+            exit 1
+            ;;
+        esac
+        if ! mountpoint -q /mnt/backup; then
+          echo "The backup drive isn't mounted. Plug it in and run: sudo mount /mnt/backup"
+          exit 1
+        fi
+
+        tmp=$(mktemp -d)
+        trap 'sudo rm -rf "$tmp"' EXIT
+        echo "Restoring $dir from the latest backup into a temporary folder..."
+        sudo restic-home restore latest --target "$tmp" --include "$dir"
+        sudo chown -R "$(id -u):$(id -g)" "$tmp"
+        if [ ! -d "$tmp$dir" ]; then
+          echo "FAILED: $dir isn't in the latest backup (or nothing could be restored)."
+          exit 1
+        fi
+
+        same=0 changed=0 gone=0
+        while IFS= read -r -d "" restored; do
+          current=''${restored#"$tmp"}
+          if [ ! -e "$current" ]; then
+            gone=$((gone + 1))
+          elif cmp -s "$restored" "$current"; then
+            same=$((same + 1))
+          else
+            changed=$((changed + 1))
+          fi
+        done < <(find "$tmp$dir" -type f -print0)
+        total=$((same + changed + gone))
+        if [ "$total" -eq 0 ]; then
+          echo "FAILED: the restore produced no files."
+          exit 1
+        fi
+
+        echo
+        echo "Restore test passed: $total files restored from the latest backup."
+        echo "  $same identical to the files on disk now"
+        echo "  $changed changed since that backup (normal for files you've edited)"
+        echo "  $gone deleted since that backup"
       '';
     })
   ];

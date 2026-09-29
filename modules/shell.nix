@@ -53,14 +53,10 @@
     podman-compose
     distrobox
 
-    # Terminal tools (yt-dlp comes from Homebrew so it stays current; see
-    # /Brewfile)
-    vifm
-
-    # Essentials (git system-wide so root can rebuild from the flake)
+    # Essentials (git system-wide so root can rebuild from the flake). Other
+    # command-line tools are in Home Manager and the Brewfile.
     git
     curl
-    wget
   ];
 
   ################################

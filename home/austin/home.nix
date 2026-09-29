@@ -47,10 +47,9 @@
       # Gaming helper: MangoHud overlay + GameMode wrapping Steam.
       steam-hud = "MANGOHUD=1 gamemoderun steam";
 
-      # Rebuild shortcuts. nh is enabled in modules/base.nix with NH_FLAKE
-      # pointing at ~/nixos-config.
+      # Rebuild from ~/nixos-config. (`nh os switch` does the same with a
+      # package diff; nh is set up in modules/base.nix.)
       rebuild = "sudo nixos-rebuild switch --flake ~/nixos-config#shitbox";
-      rebuild-nh = "nh os switch";
     };
   };
 

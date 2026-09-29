@@ -82,6 +82,11 @@ let
       if [ -e "''${XDG_CONFIG_HOME:-$HOME/.config}/no-show-user-motd" ]; then
         exit 0
       fi
+      # Not inside containers (distrobox, toolbox, podman): the banner
+      # describes this machine, not the box.
+      if [ -n "''${CONTAINER_ID:-}" ] || [ -e /run/.containerenv ] || [ -e /.dockerenv ]; then
+        exit 0
+      fi
       # shellcheck source=/dev/null
       OS_NAME=$(. /etc/os-release && echo "$PRETTY_NAME")
       SYSINFO=$(nixos-system-info)

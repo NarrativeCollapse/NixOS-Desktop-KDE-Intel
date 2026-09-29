@@ -4,19 +4,21 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v37** (git tag `v37`). See [Versions](#versions).
+**Current version: v38** (git tag `v38`). See [Versions](#versions).
 
 ## What's in it
 
-- **Desktop:** Plasma 6 on SDDM (Wayland) in Breeze Dark, PipeWire,
-  declarative Flatpak apps from Flathub (Chrome, VLC, Flatseal,
-  qBittorrent, ISO Image Writer, Bazaar), Plasma/Konsole settings in the config (plasma-manager),
-  extra wallpapers built into the system with one set on the desktop, lock
-  and login screens,
-  Bluetooth via Plasma's BlueDevil, printing with automatic network-printer
-  discovery (Avahi/mDNS), Noto + JetBrains Mono Nerd Font. Plasma's
-  screen reader (Orca), text-to-speech service and KDE PIM backend
-  (Akonadi) are turned off (see `modules/desktop.nix`).
+- **Desktop:** Plasma 6 on SDDM, Wayland only (X11 apps run through
+  Xwayland), in Breeze Dark; PipeWire; declarative Flatpak apps from Flathub
+  (Chrome, VLC, Flatseal, qBittorrent, ISO Image Writer, Bazaar);
+  Plasma/Konsole settings in the config (plasma-manager); extra wallpapers
+  built into the system, with one set on the desktop, lock and login
+  screens; Bluetooth via Plasma's BlueDevil; printing with automatic
+  network-printer discovery (Avahi/mDNS); Noto + JetBrains Mono Nerd Font.
+  Plasma defaults nothing here uses are left out (see `modules/desktop.nix`):
+  the Orca screen reader and text-to-speech, the KDE PIM backend (Akonadi),
+  the X11 session, Elisa, the Help Center, the remote desktop server, the
+  QR scanner and the on-screen touch keyboard.
 - **Hardware:** systemd-boot with the boot-menu editor locked, a graphical
   Breeze boot splash that also shows the disk password prompt (Plymouth),
   systemd initrd, LUKS with TRIM passed through to the SSD, zram swap with the
@@ -182,8 +184,10 @@ number is an example.</sub>
 - **Welcome banner:** every new terminal shows a small black-and-white
   NixOS logo beside the NixOS version, the system generation and config
   commit, then a table of common commands (starting with `update`), a
-  random Nix tip, and links. `toggle-motd` turns it off or back on (same switch file as
-  Bazzite's `~/.config/no-show-user-motd`).
+  random Nix tip, and links. It's skipped inside containers (distrobox,
+  toolbox), since it describes this machine, not the box. `toggle-motd`
+  turns it off or back on (same switch file as Bazzite's
+  `~/.config/no-show-user-motd`).
 - **fastfetch:** Bazzite's layout and icons with the NixOS logo; the first
   line shows the generation and config commit. `neofetch` runs it too.
 - **Tools:** `ls`/`ll`/`la`/`lt` use eza (icons, folders first), `grep`
@@ -227,7 +231,7 @@ wrong somewhere:
 - **Text console** (Ctrl+Alt+F3 or before login): the Linux console can't
   draw emoji or Nerd Font icons at all.
 - **Black-and-white emoji in one app:** apps that don't handle emoji
-  themselves (xterm, some older or Java/Electron apps) get monochrome emoji
+  themselves (some older X11, Java or Electron apps) get monochrome emoji
   from DejaVu Sans or Noto Sans Symbols 2 first. Appending Noto Color Emoji
   to the default fonts in `modules/desktop.nix` fixes that, at the cost of a
   few symbols such as ♥ and ✔ also turning into color emoji:
@@ -301,11 +305,28 @@ sudo restic-home snapshots
 sudo restic-home restore latest --target /tmp/restore --include /home/austin/Documents
 ```
 
-Each run ends with `restic check`, so repository corruption shows up as a
-failed `restic-backups-home` unit. For a deeper check that re-reads a
-sample of the data: `sudo restic-home check --read-data-subset=5%`.
+**Checking that backups work:**
 
-For a remote target instead of a drive, set `repository =
+- **Automatically:** each run ends with `restic check`, which also re-reads
+  a random 2% of the stored data. Over the weeks that verifies the file
+  contents themselves, not just the index; any corruption shows up as a
+  failed `restic-backups-home` unit (and a desktop alert).
+- **A real test restore:** `backup-test` restores `~/Documents` (or any
+  folder in your home: `backup-test ~/Pictures`) from the latest backup
+  into a temporary folder, compares every file with what's on disk now,
+  and reports how many are identical, changed since the backup, or deleted
+  since. The temporary copy is deleted afterwards. Worth running every
+  month or two, with the drive mounted.
+
+**An offsite copy without any account: rotate two drives.** Keep a second
+USB drive somewhere else (work, a relative's). With the first drive
+unplugged, plug in the second and run `backup-setup`: it keeps the existing
+password and formats the new drive as `BACKUP` too. Swap them every week or
+two; each drive holds its own full backup history, and the daily job backs
+up to whichever one is plugged in. Fire, theft or a dead drive then costs
+you at most a couple of weeks, not everything.
+
+For a cloud or server target instead of a drive, set `repository =
 "sftp:user@host:/path"` in `modules/backup.nix` and drop the
 `ConditionPathIsMountPoint` line.
 
@@ -341,7 +362,7 @@ the main reason: it breaks whenever video sites change.
 - **Nix (everything else):** anything wired into the shell or system:
   atuin, zoxide, direnv, starship, eza, Neovim (it keeps its own ripgrep),
   git, Podman/distrobox, gaming tools, nh, restic, the banner and fastfetch,
-  GUI apps, and rarely-changing basics like curl and wget.
+  GUI apps, and rarely-changing basics like git and curl.
 
 **How it works** (`modules/homebrew.nix`):
 
@@ -521,7 +542,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v37** | Flatpak: Bazaar, the Flathub app store Bazzite and Bluefin use. |
+| **v38** | Leaner: Wayland only (no X11 session), and the unused Plasma Help Center, remote desktop server, QR scanner and touch keyboard, plus vifm and wget, removed. Welcome banner skipped inside containers. Backups: each check re-reads 2% of the data, and `backup-test` does a real test restore. |
+| v37 | Flatpak: Bazaar, the Flathub app store Bazzite and Bluefin use. |
 | v36 | Flatpak: KDE ISO Image Writer, for writing ISO images to USB sticks. |
 | v35 | `backup-setup` walks through the one-time backup setup (password, drive, first backup), and the backup drive's mount is enabled; `update` gains [w] firmware and [r] roll back; systemd-oomd closes runaway apps before the desktop freezes; Breeze Dark with `gas-masks` on the desktop, lock and login screens; Flatpaks: Chrome, VLC, Flatseal, qBittorrent. |
 | v34 | Xwayland is the stock prebuilt package instead of being recompiled after every nixpkgs update (its legacy X11 core-font path is no longer set). CI's build cache, now with nothing slow to cache, is removed. |
