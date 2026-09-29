@@ -23,10 +23,8 @@
 
   boot.initrd.systemd.enable = true;
 
-  # Let TRIM through dm-crypt so the weekly fstrim job (on by default)
-  # actually reaches the NVMe drive. Trade-off: someone holding the disk can
-  # see which blocks are unused, though not their contents.
-  boot.initrd.luks.devices."luks-d4b5fbdc-7630-4fb8-a285-fa5390275d8e".allowDiscards = true;
+  # TRIM through dm-crypt (allowDiscards) is set per host, next to the
+  # encrypted disk it applies to: see hosts/shitbox/configuration.nix.
 
   ################################
   # Graphical boot: Plymouth

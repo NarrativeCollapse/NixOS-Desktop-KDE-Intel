@@ -1,5 +1,11 @@
-_:
+{ lib, ... }@args:
 
+let
+  # Read the LUKS device names from the generated hardware configuration, so
+  # the setting below follows the disk after a reinstall (which gives it a
+  # new UUID) instead of naming one that no longer exists.
+  hardware = import ./hardware-configuration.nix args;
+in
 {
   imports = [
     ./hardware-configuration.nix
@@ -16,6 +22,14 @@ _:
   ];
 
   networking.hostName = "shitbox";
+
+  # Let TRIM through dm-crypt, for every encrypted device in
+  # hardware-configuration.nix, so the weekly fstrim job (on by default)
+  # actually reaches the NVMe drive. Trade-off: someone holding the disk can
+  # see which blocks are unused, though not their contents.
+  boot.initrd.luks.devices = lib.mapAttrs (_: _: {
+    allowDiscards = true;
+  }) hardware.boot.initrd.luks.devices;
 
   # NOTE: Do not change this once the system is installed. This must match the
   # NixOS release you FIRST installed with, NOT the release you're currently
