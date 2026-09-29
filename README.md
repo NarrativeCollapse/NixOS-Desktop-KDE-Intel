@@ -4,13 +4,13 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v41** (git tag `v41`). See [Versions](#versions).
+**Current version: v42** (git tag `v42`). See [Versions](#versions).
 
-<img src="docs/screenshots/desktop.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with System Settings, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock" width="820">
+<img src="docs/screenshots/desktop.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock" width="820">
 
 <sub>An example of the desktop this config sets up: Breeze Dark, the default
-wallpaper, the welcome banner in Konsole, Google Chrome pinned to the
-taskbar, and the 24-hour clock. It's a rendered mockup, not a photo of the laptop; the real
+wallpaper, the welcome banner in Konsole, the white NixOS snowflake as the
+app launcher, Google Chrome pinned to the taskbar, and the 24-hour clock. It's a rendered mockup, not a photo of the laptop; the real
 taskbar icons, tray and exact layout may differ.</sub>
 
 ## What's in it
@@ -480,7 +480,11 @@ What it sets now:
     Flatpak has finished installing, in the background after the first
     boot of the new version;
   - unpins Plasma's **default web browser** launcher, the globe-like icon
-    that opens LibreWolf. LibreWolf stays installed and in the app menu;
+    that opens LibreWolf, and **System Settings**. Both stay installed and
+    in the app menu;
+  - gives the app launcher (the start menu button) the **white NixOS
+    snowflake** (`nix-snowflake-white`, from the `nixos-icons` package
+    NixOS installs on desktops) instead of the KDE logo;
   - sets the taskbar clock to **24-hour** time. The whole system uses
     24-hour time too (lock and login screens, apps, `date`), via
     `i18n.extraLocaleSettings.LC_TIME = "en_GB.UTF-8"` in
@@ -576,7 +580,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v41** | 24-hour time everywhere (`LC_TIME` = en_GB: taskbar, lock and login screens, apps, `date`; short dates become day/month); the default-browser (LibreWolf) launcher unpinned from the taskbar; README screenshot updated. |
+| **v42** | Taskbar: System Settings unpinned, and the app launcher shows the white NixOS snowflake; README screenshot updated. |
+| v41 | 24-hour time everywhere (`LC_TIME` = en_GB: taskbar, lock and login screens, apps, `date`; short dates become day/month); the default-browser (LibreWolf) launcher unpinned from the taskbar; README screenshot updated. |
 | v40 | Google Chrome pinned to the taskbar (added to the existing panel, nothing else changed); example desktop screenshot at the top of the README. |
 | v39 | Discover removed: Bazaar is the app store, `update` handles Flatpak and firmware updates, and there's no more update-notifier pop-up. |
 | v38 | Leaner: Wayland only (no X11 session), and the unused Plasma Help Center, remote desktop server, QR scanner and touch keyboard, plus vifm and wget, removed. Welcome banner skipped inside containers. Backups: each check re-reads 2% of the data, and `backup-test` does a real test restore. |

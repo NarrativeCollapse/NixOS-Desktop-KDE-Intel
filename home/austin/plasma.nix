@@ -23,14 +23,20 @@
   # (declaring the panel in plasma-manager would replace your whole layout):
   # - pin Google Chrome (the Flatpak, see modules/desktop.nix);
   # - unpin the "default web browser" launcher (LibreWolf; still installed
-  #   and in the app menu);
+  #   and in the app menu) and System Settings (still in the app menu);
+  # - give the app launcher (start menu) the white NixOS snowflake, from the
+  #   nixos-icons package NixOS installs on graphical systems;
   # - the taskbar clock always uses 24-hour time (the system does too; see
   #   LC_TIME in modules/base.nix).
   # It runs at the first login after a rebuild that changes it, so changes
   # you make by hand afterwards stay.
   programs.plasma.startup.desktopScript.taskbar.text = ''
     const pin = "applications:com.google.Chrome.desktop";
-    const unpin = "preferred://browser";
+    const unpin = [
+      "preferred://browser",
+      "applications:systemsettings.desktop",
+      "applications:org.kde.systemsettings.desktop",
+    ];
     for (const panel of panels()) {
       for (const widget of panel.widgets()) {
         if (widget.type === "org.kde.plasma.icontasks" || widget.type === "org.kde.plasma.taskmanager") {
@@ -39,11 +45,14 @@
           if (typeof launchers === "string") {
             launchers = launchers ? launchers.split(",") : [];
           }
-          launchers = launchers.filter((l) => l !== unpin);
+          launchers = launchers.filter((l) => !unpin.includes(l));
           if (!launchers.includes(pin)) {
             launchers.push(pin);
           }
           widget.writeConfig("launchers", launchers);
+        } else if (widget.type === "org.kde.plasma.kickoff" || widget.type === "org.kde.plasma.kicker") {
+          widget.currentConfigGroup = ["General"];
+          widget.writeConfig("icon", "nix-snowflake-white");
         } else if (widget.type === "org.kde.plasma.digitalclock") {
           widget.currentConfigGroup = ["Appearance"];
           widget.writeConfig("use24hFormat", 2);
