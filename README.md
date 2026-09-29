@@ -4,13 +4,15 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v34** (git tag `v34`). See [Versions](#versions).
+**Current version: v35** (git tag `v35`). See [Versions](#versions).
 
 ## What's in it
 
-- **Desktop:** Plasma 6 on SDDM (Wayland), PipeWire, declarative Flatpak
-  apps from Flathub, Plasma/Konsole settings in the config (plasma-manager),
-  extra wallpapers built into the system,
+- **Desktop:** Plasma 6 on SDDM (Wayland) in Breeze Dark, PipeWire,
+  declarative Flatpak apps from Flathub (Chrome, VLC, Flatseal,
+  qBittorrent), Plasma/Konsole settings in the config (plasma-manager),
+  extra wallpapers built into the system with one set on the desktop, lock
+  and login screens,
   Bluetooth via Plasma's BlueDevil, printing with automatic network-printer
   discovery (Avahi/mDNS), Noto + JetBrains Mono Nerd Font. Plasma's
   screen reader (Orca), text-to-speech service and KDE PIM backend
@@ -18,7 +20,8 @@ Plasma 6.
 - **Hardware:** systemd-boot with the boot-menu editor locked, a graphical
   Breeze boot splash that also shows the disk password prompt (Plymouth),
   systemd initrd, LUKS with TRIM passed through to the SSD, zram swap with the
-  kernel tuned for it (as on Fedora and Pop!_OS),
+  kernel tuned for it (as on Fedora and Pop!_OS), systemd-oomd closing a
+  runaway app before memory pressure freezes the desktop,
   power-profiles-daemon + thermald, fwupd, and Intel VA-API/QSV drivers so
   video decodes on the GPU. Closing the lid suspends on battery and does
   nothing on AC.
@@ -117,10 +120,11 @@ searches text, `<Space>fb` lists open buffers.
 Nothing updates on its own. Run `update` (it's in the welcome banner)
 whenever you want to check:
 
-<img src="docs/screenshots/update-menu.png" alt="The update menu: [s] System (NixOS), [f] Flatpak apps, [b] Homebrew tools, [a] All of the above, [q] Quit" width="531">
+<img src="docs/screenshots/update-menu.png" alt="The update menu: [s] System (NixOS), [f] Flatpak apps, [b] Homebrew tools, [w] Firmware, [a] All of the above, [r] Roll back the last system update, [q] Quit" width="531">
 
 Or skip the menu: `update system`, `update flatpak`, `update brew`,
-`update all`. Each part asks before it changes anything.
+`update firmware`, `update all`, `update rollback`. Each part asks before it
+changes anything.
 
 - **[s] System** (`update-system`, in `modules/updates.nix`):
   1. Runs `git pull` in `~/nixos-config`, so changes pushed from elsewhere
@@ -140,6 +144,16 @@ Or skip the menu: `update system`, `update flatpak`, `update brew`,
   is still applied, and it prints the two commands to push later.
 - **[f] Flatpak** runs `flatpak update`, which lists pending updates and
   asks before installing them. System-wide apps may ask for your password.
+- **[w] Firmware** (`update-firmware`) asks fwupd for BIOS and device
+  firmware updates from the LVFS, and `fwupdmgr update` asks before
+  installing and before any reboot. Many HP consumer laptops get none, in
+  which case it says so.
+- **[r] Roll back** (`update-rollback`) lists the last few system versions
+  and, after a yes, switches back to the one before the current one (the
+  same as choosing it in the boot menu, but it stays the default). Your
+  `~/nixos-config` still holds the newer version, so the next `rebuild` or
+  `update` returns to it; to stay back, undo the change there (for
+  example `git revert HEAD`) and push.
 - **[b] Homebrew** (`brew-update`, in `modules/homebrew.nix`) installs
   Homebrew the first time (after asking), runs `brew update`, then lists
   formulas that are missing, outdated, or installed but not in the
@@ -259,47 +273,48 @@ saves) are kept. Retention is 7 daily, 4 weekly, and 6 monthly snapshots.
 
 ### One-time setup
 
-The restic job skips silently until both steps are done (by design):
+Run **`backup-setup`** in a terminal once. It walks through three steps and
+explains each one:
 
-1. **Create the repo password — and store a copy OFF this machine.** Losing
-   it makes every backup unreadable, permanently:
+1. **The password.** It generates the repository password, shows it once,
+   and waits until you type `saved`. Store it somewhere OFF this laptop
+   (password manager, printed sheet): losing it makes every backup
+   unreadable, permanently. It's kept in `/etc/secrets/restic-password`,
+   readable by root only.
+2. **The drive.** Plug in an external USB drive. It lists USB drives only,
+   asks which partition to use, and asks you to type the name again before
+   erasing it and formatting it as ext4 labelled `BACKUP`. A drive already
+   labelled `BACKUP` is used as is.
+3. **The first backup.** It mounts the drive at `/mnt/backup` and, if you
+   say yes, runs the first backup and lists the snapshot.
 
-   ```bash
-   sudo mkdir -p /etc/secrets && sudo chmod 700 /etc/secrets
-   head -c 32 /dev/urandom | base64 | sudo tee /etc/secrets/restic-password
-   sudo chmod 600 /etc/secrets/restic-password
-   ```
+After that, the daily job runs whenever the drive is plugged in and mounted.
+The drive mounts at boot when it's plugged in; boot carries on normally
+without it (`nofail`). After plugging it in later: `sudo mount /mnt/backup`.
+Until setup is done, the job skips quietly (and the warning below reminds
+you).
 
-2. **Provide the target.** Default expects an external drive at `/mnt/backup`:
-   label a partition `BACKUP` and uncomment the `fileSystems."/mnt/backup"`
-   block in `modules/backup.nix` (uses `nofail`, so boot is unaffected when
-   the drive is absent; plug in later → `sudo mount /mnt/backup`). For a
-   remote target, set `repository = "sftp:user@host:/path"` and drop the
-   `ConditionPathIsMountPoint` line.
+Check and restore (as root, since the password file is root-only):
 
-3. **First run + verify:**
+```bash
+sudo restic-home snapshots
+sudo restic-home restore latest --target /tmp/restore --include /home/austin/Documents
+```
 
-   ```bash
-   sudo systemctl start restic-backups-home
-   restic-home snapshots
-   ```
+Each run ends with `restic check`, so repository corruption shows up as a
+failed `restic-backups-home` unit. For a deeper check that re-reads a
+sample of the data: `sudo restic-home check --read-data-subset=5%`.
 
-   Restore example:
-
-   ```bash
-   restic-home restore latest --target /tmp/restore --include /home/austin/Documents
-   ```
-
-   Each run ends with `restic check`, so repository corruption shows up as a
-   failed `restic-backups-home` unit. For a deeper check that re-reads a
-   sample of the data: `restic-home check --read-data-subset=5%`.
+For a remote target instead of a drive, set `repository =
+"sftp:user@host:/path"` in `modules/backup.nix` and drop the
+`ConditionPathIsMountPoint` line.
 
 ### Stale-backup warning
 
 Because the job skips silently whenever the drive isn't mounted, a desktop
 notification warns you instead: shortly after login and once a day, if the
 last successful backup is more than 7 days old, or if there has never been
-one (so it also reminds you to finish the setup above). Each fully
+one (then it tells you to run `backup-setup`). Each fully
 successful run (backup, prune, and check) touches
 `/var/lib/restic-home-last-success`, which is what the warning reads.
 
@@ -379,7 +394,8 @@ services.flatpak.packages = [
   which retries with a growing delay while offline.
 - Nothing updates automatically: `update` ([f]) runs `flatpak update` for
   listed and hand-installed apps alike, and asks first.
-- The list starts empty, and `uninstallUnmanaged = false` leaves apps you
+- Listed now: Google Chrome, VLC, Flatseal (manages Flatpak app
+  permissions) and qBittorrent. `uninstallUnmanaged = false` leaves apps you
   installed by hand (Discover, `flatpak install`) alone. Once every app you
   want is listed, set it to `true` to make the list authoritative; unlisted
   apps are then removed.
@@ -395,10 +411,11 @@ drop a JPEG or PNG into `wallpapers/`, commit it and rebuild; to remove one,
 delete the file. Keep images to a few MB, since git keeps every version of
 them forever.
 
-Nothing is set as the default; pick one in the picker. To set it from the
-config instead, or to rotate through the folder as a slideshow, use
-plasma-manager's `workspace.wallpaper` or `workspace.wallpaperSlideShow` in
-`home/austin/plasma.nix`.
+**The default** is `gas-masks.jpg`, on the desktop, the lock screen and the
+login screen. It's set once, as `wallpaper` at the top of
+`modules/desktop.nix`; change the file name there to switch all three. The
+config applies it at the first login after a rebuild that changes it, so a
+wallpaper you pick by hand in System Settings stays until then.
 
 ## Plasma settings
 
@@ -407,16 +424,29 @@ plasma-manager's `workspace.wallpaper` or `workspace.wallpaperSlideShow` in
 writes the settings declared there; anything else you change in System
 Settings is left alone.
 
-Currently it sets up one thing: a Konsole profile named "NixOS" (Breeze
-colors, JetBrainsMono Nerd Font Mono 11), made Konsole's default. It also
-explicitly writes nothing to KRunner's web-shortcut settings, which
-plasma-manager would otherwise reset.
+What it sets now:
 
-To bring more of your desktop (panels, theme, shortcuts, power settings)
-into the config, run `nix run github:nix-community/plasma-manager`. It
-prints your current Plasma settings as Nix; copy the parts you want into
-`plasma.nix` and rebuild. Panels are all-or-nothing: once declared, the
-config replaces your whole panel layout on login, so capture it first.
+- **Breeze Dark**: the dark color scheme for apps and windows and the dark
+  Plasma style for the panel and widgets.
+- **Wallpapers** for the desktop and lock screen (declared in
+  `modules/desktop.nix`; see [Wallpapers](#wallpapers)).
+- **Konsole**: a profile named "NixOS" (Breeze colors, JetBrainsMono Nerd
+  Font Mono 11), made Konsole's default.
+- It explicitly writes nothing to KRunner's web-shortcut settings, which
+  plasma-manager would otherwise reset.
+
+**Capturing the rest of your desktop** (panels, shortcuts, power settings):
+on the laptop, run
+
+```bash
+nix run github:nix-community/plasma-manager > ~/plasma-current.nix
+```
+
+It prints your current Plasma settings as Nix. Copy the parts you want into
+`plasma.nix` and rebuild (keep the dump itself out of the repo: it isn't
+formatted or linted, so `nix flake check` would reject it). Panels are all-or-nothing:
+once declared, the config replaces your whole panel layout on login, so
+capture it first.
 
 ## Failure alerts
 
@@ -489,7 +519,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v34** | Xwayland is the stock prebuilt package instead of being recompiled after every nixpkgs update (its legacy X11 core-font path is no longer set). CI's build cache, now with nothing slow to cache, is removed. |
+| **v35** | `backup-setup` walks through the one-time backup setup (password, drive, first backup), and the backup drive's mount is enabled; `update` gains [w] firmware and [r] roll back; systemd-oomd closes runaway apps before the desktop freezes; Breeze Dark with `gas-masks` on the desktop, lock and login screens; Flatpaks: Chrome, VLC, Flatseal, qBittorrent. |
+| v34 | Xwayland is the stock prebuilt package instead of being recompiled after every nixpkgs update (its legacy X11 core-font path is no longer set). CI's build cache, now with nothing slow to cache, is removed. |
 | v33 | Welcome banner: a small black-and-white NixOS logo beside the heading and system lines. |
 | v32 | Updates only when you ask: new `update` menu (system, Flatpak, Homebrew) that shows what would change and applies it on a yes; the system part bumps, tags and pushes the version itself. Homebrew's daily job, Flatpak's weekly auto-update and the weekly GitHub update PR are off. |
 | v31 | Slimmed down: Ghostty removed (Konsole is the terminal again), and Plasma's Orca screen reader, speech-dispatcher and KDE PIM backend (Akonadi) turned off, about 1.1 GB less. |

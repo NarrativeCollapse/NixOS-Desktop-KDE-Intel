@@ -66,6 +66,12 @@
   };
   # Its VM tuning is in the sysctl block below.
 
+  # When memory really runs out, systemd-oomd closes the app using the most
+  # (its whole process group) after sustained memory pressure, instead of
+  # the desktop freezing until the kernel's last-resort OOM killer acts.
+  # Fedora does the same. `journalctl -u systemd-oomd` shows what it closed.
+  systemd.oomd.enableUserSlices = true;
+
   ################################
   # Power / thermal / firmware
   ################################

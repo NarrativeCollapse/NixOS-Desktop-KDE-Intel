@@ -1,8 +1,9 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 # Updates happen only when you ask for them. `update` opens a menu (or takes
-# system / flatpak / brew / all as an argument); each part shows what would
-# change and asks before applying anything. Nothing here runs on a timer.
+# system / flatpak / brew / firmware / all / rollback as an argument); each
+# part shows what would change and asks before applying anything. Nothing
+# here runs on a timer.
 let
   flake = "/home/austin/nixos-config";
 
@@ -107,11 +108,59 @@ let
     '';
   };
 
+  # [w] Firmware: fwupd lists BIOS and device firmware updates from the
+  # LVFS; `fwupdmgr update` asks before installing and before any reboot.
+  # Many HP consumer models get none; then it just says so.
+  updateFirmware = pkgs.writeShellApplication {
+    name = "update-firmware";
+    runtimeInputs = [ config.services.fwupd.package ];
+    text = ''
+      echo "Checking for firmware updates..."
+      fwupdmgr refresh >/dev/null 2>&1 || true
+      status=0
+      fwupdmgr get-updates || status=$?
+      case $status in
+        0)
+          echo
+          fwupdmgr update
+          ;;
+        2) echo "No firmware updates available." ;;
+        *)
+          echo "fwupd couldn't check for firmware updates (exit code $status)."
+          exit 1
+          ;;
+      esac
+    '';
+  };
+
+  # [r] Roll back: switch to the system version before the current one (the
+  # same as picking it in the boot menu, but it stays the default).
+  updateRollback = pkgs.writeShellApplication {
+    name = "update-rollback";
+    text = ''
+      ${confirm}
+      echo "Recent system versions (the running one is marked current):"
+      nix-env --list-generations --profile /nix/var/nix/profiles/system | tail -n 5
+      echo
+      if ! confirm "Switch back to the version before the current one?"; then
+        echo "Nothing changed."
+        exit 0
+      fi
+      sudo nixos-rebuild switch --rollback
+      echo
+      echo "Rolled back. ~/nixos-config still has the newer version, so the next"
+      echo "\`rebuild\` or \`update\` would return to it. To stay on this one, undo the"
+      echo "change there (e.g. git revert HEAD) and push."
+    '';
+  };
+
   update = pkgs.writeShellApplication {
     name = "update";
     runtimeInputs = [
       updateSystem
       updateFlatpak
+      updateFirmware
+      updateRollback
     ];
     text = ''
       # brew-update comes from modules/homebrew.nix. A failure in one part
@@ -124,16 +173,19 @@ let
         run update-system
         run update-flatpak
         run brew-update
+        run update-firmware
       }
 
       case "''${1:-}" in
         system) run update-system; exit ;;
         flatpak) run update-flatpak; exit ;;
         brew) run brew-update; exit ;;
+        firmware) run update-firmware; exit ;;
         all) all; exit ;;
+        rollback) run update-rollback; exit ;;
         "") ;;
         *)
-          echo "Usage: update [system|flatpak|brew|all]"
+          echo "Usage: update [system|flatpak|brew|firmware|all|rollback]"
           exit 1
           ;;
       esac
@@ -145,7 +197,9 @@ let
         [s] System (NixOS)   check, show changes, ask to apply
         [f] Flatpak apps
         [b] Homebrew tools
+        [w] Firmware (BIOS and devices)
         [a] All of the above
+        [r] Roll back the last system update
         [q] Quit
 
       MENU
@@ -156,7 +210,9 @@ let
           s | S) run update-system ;;
           f | F) run update-flatpak ;;
           b | B) run brew-update ;;
+          w | W) run update-firmware ;;
           a | A) all ;;
+          r | R) run update-rollback ;;
           q | Q | "") exit 0 ;;
           *) echo "No option '$key'." && echo ;;
         esac
@@ -169,5 +225,7 @@ in
     update
     updateSystem
     updateFlatpak
+    updateFirmware
+    updateRollback
   ];
 }

@@ -11,6 +11,14 @@
 {
   programs.plasma.enable = true;
 
+  # Breeze Dark: dark color scheme for apps and windows, and the dark Plasma
+  # style for the panel and widgets. (Wallpapers are set in
+  # modules/desktop.nix, next to the wallpaper files.)
+  programs.plasma.workspace = {
+    colorScheme = "BreezeDark";
+    theme = "breeze-dark";
+  };
+
   # plasma-manager's web-search-keywords module always writes KRunner's web
   # shortcut settings, including an empty "preferred shortcuts" list that
   # would reset your choices in System Settings. Write nothing there instead.

@@ -1,5 +1,10 @@
 { pkgs, ... }:
 
+let
+  # Default wallpaper for the desktop, the lock screen and the login screen
+  # (one of the images in wallpapers/).
+  wallpaper = ../wallpapers/gas-masks.jpg;
+in
 {
   ################################
   # Desktop: Plasma 6 on SDDM
@@ -35,8 +40,21 @@
     (pkgs.runCommand "extra-wallpapers" { } ''
       install -Dm644 -t $out/share/wallpapers ${../wallpapers}/*
     '')
+    # Login screen (SDDM's Breeze theme) background.
+    (pkgs.writeTextDir "share/sddm/themes/breeze/theme.conf.user" ''
+      [General]
+      background=${wallpaper}
+    '')
   ];
   environment.pathsToLink = [ "/share/wallpapers" ];
+
+  # Desktop and lock screen wallpaper (plasma-manager; see
+  # home/austin/plasma.nix). Applied at the first login after a rebuild that
+  # changes it; one picked by hand in System Settings stays until then.
+  home-manager.users.austin.programs.plasma = {
+    workspace.wallpaper = wallpaper;
+    kscreenlocker.appearance.wallpaper = wallpaper;
+  };
 
   ################################
   # Audio: PipeWire
@@ -68,10 +86,14 @@
   # updated automatically; `update` ([f]) does that when you choose.
   services.flatpak = {
     enable = true;
-    # Flathub is the default remote. Add apps by ID, e.g.
-    #   "com.discordapp.Discord"
-    #   { appId = "org.mozilla.firefox"; origin = "flathub"; }
-    packages = [ ];
+    # Flathub is the default remote. Add apps by their Flathub ID (the part
+    # after /apps/ in the app's flathub.org address).
+    packages = [
+      "com.google.Chrome"
+      "org.videolan.VLC"
+      "com.github.tchx84.Flatseal" # manage Flatpak app permissions
+      "org.qbittorrent.qBittorrent"
+    ];
     # Leave apps installed by hand (Discover, `flatpak install`) alone. Set to
     # true once everything you want is listed above to make this list the
     # source of truth, like the Brewfile.
