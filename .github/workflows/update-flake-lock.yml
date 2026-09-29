@@ -17,7 +17,7 @@ jobs:
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: cachix/install-nix-action@v31
 
@@ -38,8 +38,10 @@ jobs:
         if: steps.update.outputs.changed == 'true'
         run: echo "version=$(python3 .github/workflows/bump-version.py update.log)" >> "$GITHUB_OUTPUT"
 
-      # Pull requests opened with the default token don't trigger other
-      # workflows, so the update is checked and built here instead.
+      # Check and build before opening the pull request. The PR's own Check
+      # run waits for a manual "Approve and run" (GitHub holds workflow runs
+      # on pull requests opened by github-actions[bot]), so this is the test
+      # that counts.
       - name: Check and build the updated system
         if: steps.update.outputs.changed == 'true'
         run: |
@@ -65,7 +67,7 @@ jobs:
       - name: Clean up
         run: rm -f update.log
 
-      - uses: peter-evans/create-pull-request@v7
+      - uses: peter-evans/create-pull-request@v8
         if: steps.update.outputs.changed == 'true'
         with:
           branch: update-flake-lock

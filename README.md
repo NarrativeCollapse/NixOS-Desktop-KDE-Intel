@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v28** (git tag `v28`). See [Versions](#versions).
+**Current version: v29** (git tag `v29`). See [Versions](#versions).
 
 ## What's in it
 
@@ -413,7 +413,10 @@ Two GitHub Actions workflows live in `.github/workflows/`:
   `.github/workflows/bump-version.py`), checks and builds the result, and
   only then opens a pull request listing what changed. After merging it,
   run `git pull && rebuild` on the laptop and tag the merge commit. Weeks
-  with no updates open no pull request.
+  with no updates open no pull request. The pull request's own Check run
+  shows "action required": GitHub holds workflow runs on pull requests the
+  Actions bot opens until you click **Approve and run**. That's optional,
+  since the same check and build already passed before the PR was opened.
 
 One-time GitHub setting for the update workflow: Settings → Actions →
 General → Workflow permissions → tick **Allow GitHub Actions to create and
@@ -447,7 +450,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v28** | Weekly `flake.lock` update: nixpkgs. |
+| **v29** | Fix: desktop alerts for failed system jobs (the backup) never appeared, because the alert ran `sh`, which isn't on a service's PATH. CI moved to Node 24 actions (checkout v7, create-pull-request v8), a read-only token, and cancels superseded runs. |
+| v28 | Weekly `flake.lock` update: nixpkgs. |
 | v27 | Five more wallpapers (nine in all); Ghostty terminal with a minimal translucent config (`home/austin/ghostty.nix`), next to Konsole. |
 | v26 | Four extra wallpapers built into the system (`wallpapers/`), listed in Plasma's wallpaper picker. |
 | v25 | Cleanup, no intended behavior change: removed settings that repeated NixOS/Plasma defaults or other modules (dconf, portal, fonts, Bluetooth power-on, logind lid/power key, firewall, sudo, keymap, locale categories, steam-hardware, EDITOR, unused specialArgs); root's shell back to bash. The weekly `flake.lock` PR now bumps the version itself. |
