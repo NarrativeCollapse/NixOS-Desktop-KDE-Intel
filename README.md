@@ -51,6 +51,7 @@ Brewfile                         CLI tools managed by Homebrew (see Homebrew bel
 statix.toml                      statix lint config
 wallpapers/                      extra wallpapers installed system-wide
 CLAUDE.md                        rules for AI-assisted changes (checks, versioning)
+docs/screenshots/                images used in this README
 .github/actions/setup-nix/       CI setup shared by both workflows (Nix + build cache)
 .github/workflows/
   check.yml                      CI: nix flake check + full system build
@@ -116,15 +117,7 @@ searches text, `<Space>fb` lists open buffers.
 Nothing updates on its own. Run `update` (it's in the welcome banner)
 whenever you want to check:
 
-```
-  Updates
-  ───────
-  [s] System (NixOS)   check, show changes, ask to apply
-  [f] Flatpak apps
-  [b] Homebrew tools
-  [a] All of the above
-  [q] Quit
-```
+<img src="docs/screenshots/update-menu.png" alt="The update menu: [s] System (NixOS), [f] Flatpak apps, [b] Homebrew tools, [a] All of the above, [q] Quit" width="531">
 
 Or skip the menu: `update system`, `update flatpak`, `update brew`,
 `update all`. Each part asks before it changes anything.
@@ -166,6 +159,11 @@ unless you click it.
 terminal the Nix way. Bazzite installs these tools with Homebrew
 (`ujust bazzite-cli`) and appends lines to your shell's rc file; here Home
 Manager declares all of it. Adapted from Bazzite (Apache-2.0).
+
+<img src="docs/screenshots/welcome-banner.png" alt="The welcome banner in Konsole: a black-and-white NixOS logo beside the NixOS version and config version, then a table of common commands, a tip and links" width="820">
+
+<sub>Rendered from the banner script in Konsole's colors; the generation
+number is an example.</sub>
 
 - **Welcome banner:** every new terminal shows a small black-and-white
   NixOS logo beside the NixOS version, the system generation and config
