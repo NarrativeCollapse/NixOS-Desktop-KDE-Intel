@@ -76,6 +76,16 @@
     nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) config.my.unfreePackages;
 
     ################################
+    # Prebuilt Linux programs: nix-ld
+    ################################
+
+    # Programs built for ordinary Linux distributions expect the loader at
+    # /lib64/ld-linux-x86-64.so.2, which NixOS doesn't have; nix-ld provides
+    # it (with common libraries). Used by Homebrew's bottles (homebrew.nix)
+    # and the tools Mason downloads for Neovim (home/austin/neovim.nix).
+    programs.nix-ld.enable = true;
+
+    ################################
     # Logging / misc
     ################################
 

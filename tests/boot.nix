@@ -79,7 +79,8 @@
     with subtest("The config's commands are installed and run"):
         machine.succeed(
             "su - austin -c 'command -v update update-system update-rollback"
-            " backup-setup backup-test brew-update disk-health nixos-motd'"
+            " update-neovim backup-setup backup-test brew-update disk-health"
+            " nixos-motd'"
         )
         # An unknown option prints the usage and exits 1 (the test shell uses
         # pipefail, so check the output rather than piping it to grep).
@@ -92,6 +93,21 @@
         info = machine.succeed("su - austin -c nixos-system-info")
         system = machine.succeed("readlink /run/current-system")
         assert "${version}" in info, f"nixos-system-info: {info!r}, system: {system!r}"
+
+    with subtest("Neovim is set up for LazyVim"):
+        # ~/.config/nvim points into the config checkout (the VM has none,
+        # so the link dangles here; on the laptop it's ~/nixos-config).
+        machine.succeed(
+            "test \"$(readlink -m /home/austin/.config/nvim)\""
+            " = /home/austin/nixos-config/home/austin/nvim"
+        )
+        # Home Manager didn't write its own init.lua there (sideloadInitLua).
+        machine.fail("test -e /home/austin/.config/nvim/init.lua")
+        # nvim runs, and its wrapper carries the tools LazyVim needs.
+        machine.succeed("su - austin -c 'nvim --version'")
+        wrapper = machine.succeed("su - austin -c 'cat \"$(command -v nvim)\"'")
+        for tool in ["tree-sitter", "gcc", "nil", "lazygit"]:
+            assert tool in wrapper, f"{tool} missing from nvim's PATH: {wrapper}"
 
     # Anything else that failed in the VM, for the log (not a test failure:
     # see the list above).

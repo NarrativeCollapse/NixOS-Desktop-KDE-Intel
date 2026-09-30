@@ -13,8 +13,7 @@ in
   # "Homebrew" in README.md for why the split is where it is.
 
   # Homebrew's Linux bottles and its bundled Ruby are ordinary prebuilt
-  # binaries that expect /lib64/ld-linux-x86-64.so.2; nix-ld provides it.
-  programs.nix-ld.enable = true;
+  # binaries; nix-ld (base.nix) lets them run.
 
   # Homebrew's default Linux prefix, owned by the user so brew never needs
   # sudo.

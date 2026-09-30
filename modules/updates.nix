@@ -4,7 +4,7 @@
 # system / flatpak / brew / firmware / all / rollback as an argument); each
 # part shows what would change and asks before applying anything. Nothing
 # here runs on a timer. The longer scripts are in scripts/ (update.sh,
-# update-system.sh); the short ones are inline below.
+# update-system.sh, update-neovim.sh); the short ones are inline below.
 let
   # The config checkout, defined once as nh's flake path (base.nix).
   inherit (config.programs.nh) flake;
@@ -85,11 +85,27 @@ let
     '';
   };
 
+  # [n] Neovim: LazyVim and its plugins (home/austin/neovim.nix). Runs
+  # `:Lazy sync` headless, then commits and pushes the new pins in
+  # lazy-lock.json. nvim comes from the user's PATH: the Home Manager build,
+  # which carries the compiler and tools the plugins need.
+  updateNeovim = pkgs.writeShellApplication {
+    name = "update-neovim";
+    runtimeInputs = with pkgs; [
+      coreutils
+      git
+      gnused
+    ];
+    runtimeEnv.CONFIG_FLAKE = flake;
+    text = builtins.readFile ../scripts/lib/confirm.sh + builtins.readFile ../scripts/update-neovim.sh;
+  };
+
   update = pkgs.writeShellApplication {
     name = "update";
     runtimeInputs = [
       updateSystem
       updateFlatpak
+      updateNeovim
       updateFirmware
       updateRollback
     ];
@@ -101,6 +117,7 @@ in
     update
     updateSystem
     updateFlatpak
+    updateNeovim
     updateFirmware
     updateRollback
   ];

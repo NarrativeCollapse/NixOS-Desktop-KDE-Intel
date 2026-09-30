@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v48** (git tag `v48`). See [Versions](#versions).
+**Current version: v49** (git tag `v49`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v43.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -49,8 +49,9 @@ taskbar icons, tray and exact layout may differ.</sub>
   over Bluetooth.
 - **Shell & tools:** zsh + Starship with a Bazzite-style terminal (welcome
   banner, branded fastfetch, eza/atuin/zoxide/direnv and friends; see
-  [Terminal](#terminal-bazzite-style)), Neovim (treesitter, telescope,
-  gitsigns), git, Podman (Docker-compatible) + distrobox, LibreWolf.
+  [Terminal](#terminal-bazzite-style)), Neovim with
+  [LazyVim](#neovim-lazyvim), git, Podman (Docker-compatible) + distrobox,
+  LibreWolf.
 - **Maintenance:** flakes only (no Nix channels; `nix-shell -p` and
   `<nixpkgs>` use the same nixpkgs as the system), nh for rebuilds and
   weekly cleanup (keeps 14 days and at least 5 generations), weekly store
@@ -58,8 +59,8 @@ taskbar icons, tray and exact layout may differ.</sub>
   `/home` (needs the one-time setup below) with a desktop warning when they
   go stale, and GitHub Actions that build every push (see [CI](#ci)).
 - **Updates:** nothing updates on its own. `update` checks the system,
-  Flatpak apps and Homebrew tools, shows what would change, and applies it
-  only when you say yes (see [Updates](#updates)).
+  Flatpak apps, Homebrew tools and Neovim plugins, shows what would change,
+  and applies it only when you say yes (see [Updates](#updates)).
 
 ## Layout
 
@@ -93,13 +94,17 @@ modules/
   backup.nix                     restic job for /home (needs one-time setup)
   homebrew.nix                   Homebrew PATH, completions, `brew-update`
   notifications.nix              `notify-desktop` + `notify-failure@`: desktop alerts from services
-  updates.nix                    `update` menu: system, Flatpak and Homebrew updates
-home/austin/home.nix             zsh, starship, git, neovim
+  updates.nix                    `update` menu: system, Flatpak, Homebrew, Neovim, firmware
+home/austin/home.nix             zsh, starship, git
 home/austin/bling.nix            Bazzite-style MOTD, fastfetch, CLI tools + aliases
 home/austin/plasma.nix           Plasma/KDE settings via plasma-manager (Konsole profile)
+home/austin/neovim.nix           Neovim + the tools LazyVim needs; links ~/.config/nvim
+home/austin/nvim/                the LazyVim config itself (~/.config/nvim), with
+                                 lazy-lock.json pinning every plugin
 tests/boot.nix                   VM boot test, run by `nix flake check` and CI
 scripts/                         the longer shell scripts, as plain bash (see below)
   update.sh, update-system.sh    the `update` menu and its [s] System part
+  update-neovim.sh               [n] Neovim plugins
   backup-setup.sh, backup-test.sh
   brew-update.sh                 [b] Homebrew
   install-shitbox.sh             the installer ISO's installer
@@ -237,18 +242,17 @@ internet. Run it alone with `nix build .#checks.x86_64-linux.boot -L`, or
 watch the VM with `nix run .#checks.x86_64-linux.boot.driverInteractive`
 (then `start_all()` at its prompt).
 
-In Neovim the leader key is Space: `<Space>ff` finds files, `<Space>fg`
-searches text, `<Space>fb` lists open buffers.
+Neovim is LazyVim; its keys are in [Neovim (LazyVim)](#neovim-lazyvim).
 
 ## Updates
 
 Nothing updates on its own. Run `update` (it's in the welcome banner)
 whenever you want to check:
 
-<img src="docs/screenshots/update-menu.png" alt="The update menu: [s] System (NixOS), [f] Flatpak apps, [b] Homebrew tools, [w] Firmware, [a] All of the above, [r] Roll back the last system update, [q] Quit" width="531">
+<img src="docs/screenshots/update-menu-v49.png" alt="The update menu: [s] System (NixOS), [f] Flatpak apps, [b] Homebrew tools, [n] Neovim plugins (LazyVim), [w] Firmware, [a] All of the above, [r] Roll back the last system update, [q] Quit" width="531">
 
 Or skip the menu: `update system`, `update flatpak`, `update brew`,
-`update firmware`, `update all`, `update rollback`. Each part asks before it
+`update neovim`, `update firmware`, `update all`, `update rollback`. Each part asks before it
 changes anything.
 
 - **[s] System** (`update-system`, in `modules/updates.nix`):
@@ -295,6 +299,10 @@ changes anything.
   formulas that are missing, outdated, or installed but not in the
   Brewfile, and installs, upgrades and removes them to match only on a
   yes.
+- **[n] Neovim** (`update-neovim`): after a `git pull` and a yes, updates
+  LazyVim and its plugins (`:Lazy sync`), lists the plugins that changed,
+  and commits and pushes the new pins in `home/austin/nvim/lazy-lock.json`.
+  See [Neovim (LazyVim)](#neovim-lazyvim) for going back.
 
 Still scheduled, because none of them change what's installed: nh's weekly
 cleanup of old generations, weekly store deduplication, the daily backup,
@@ -382,6 +390,64 @@ wrong somewhere:
   come after the text fonts or it would take over digits and `#`.
 - **Missing in the banner, prompt, or fastfetch:** rebuild (`rebuild`) and
   open a new terminal.
+
+## Neovim (LazyVim)
+
+Neovim runs [LazyVim](https://www.lazyvim.org): a full IDE-style setup
+(file explorer, fuzzy finding, language servers, completion, formatting,
+git, a key guide) on top of plain Neovim. It's split the way LazyVim
+expects on NixOS:
+
+- **Nix** (`home/austin/neovim.nix`) installs Neovim and the tools LazyVim
+  needs on Neovim's own PATH: a C compiler and the tree-sitter CLI (for
+  syntax parsers), ripgrep, fd, fzf, lazygit, unzip, the Wayland clipboard,
+  and the Nix language tools (the `nil` language server, `nixfmt`,
+  `statix`). Neovim stays the default editor (`vi` and `vim` open it).
+- **LazyVim** (`home/austin/nvim/`) manages its plugins itself.
+  `~/.config/nvim` points straight at that folder in `~/nixos-config`, not
+  at a copy in the Nix store, so:
+  - edits there apply the next time Neovim starts, with no rebuild;
+  - every plugin's exact version is pinned in `lazy-lock.json`, which is
+    committed, so a reinstall gets the same versions;
+  - extras you turn on with `:LazyExtras` are saved in `lazyvim.json`
+    there. Commit them like any other change.
+
+**First start** downloads the plugins and compiles the syntax parsers, so
+it needs the internet and takes a minute. After that, nothing updates by
+itself: LazyVim's background update check is off, and `update` [n] (or
+`:Lazy` inside Neovim) updates plugins when you choose.
+
+**Keys** (leader is Space; press it and wait for a menu of everything):
+
+| Keys | Does |
+| --- | --- |
+| `Space Space` or `Space f f` | Find files |
+| `Space /` or `Space s g` | Search text in the project |
+| `Space ,` or `Space f b` | Switch buffer |
+| `Space e` | File explorer |
+| `Space g g` | lazygit |
+| `Space c f` | Format the file |
+| `Space l` | `:Lazy`, the plugin manager |
+| `Space c m` | `:Mason`, language servers and tools |
+
+The earlier config's `Space f f` and `Space f b` still work; text search
+moved from `Space f g` to `Space /`.
+
+**Languages:** LazyVim's defaults cover Lua, Markdown, JSON, YAML and
+more, and the Nix extra is on for this repo (highlighting, the `nil`
+language server, `nixfmt` on save, `statix` hints). For others, open
+`:LazyExtras` and enable one (for example `lang.python`). Mason downloads
+most language servers itself; its prebuilt ones run on NixOS through
+nix-ld. Ones installed with npm need Node.js: add `nodejs` to
+`extraPackages` in `home/austin/neovim.nix` if an extra asks for it.
+
+**Going back** after a plugin update: `cd ~/nixos-config && git revert
+HEAD` (or `git checkout <commit> -- home/austin/nvim/lazy-lock.json`), then
+`:Lazy restore` in Neovim.
+
+**Settings** go in `home/austin/nvim/lua/config/` (`options.lua`,
+`keymaps.lua`, `autocmds.lua`) and extra plugins in
+`home/austin/nvim/lua/plugins/`, as in LazyVim's own docs.
 
 ## Personalize
 
@@ -495,7 +561,8 @@ the main reason: it breaks whenever video sites change.
   integration: yt-dlp, gh, glab, ripgrep, fd, bat, jq, yq, television,
   dysk, trash-cli, tealdeer, shellcheck, stress-ng.
 - **Nix (everything else):** anything wired into the shell or system:
-  atuin, zoxide, direnv, starship, eza, Neovim (it keeps its own ripgrep),
+  atuin, zoxide, direnv, starship, eza, Neovim (it keeps its own ripgrep,
+  fd and other tools on its PATH),
   git, Podman/distrobox, gaming tools, nh, restic, the banner and fastfetch,
   GUI apps, and rarely-changing basics like git and curl.
 
@@ -511,8 +578,9 @@ the main reason: it breaks whenever video sites change.
   next `brew-update` would offer to remove. Nothing runs on a timer.
 - brew's `bin` goes at the end of `PATH`, so if a brew dependency has the
   same name as a Nix tool (python3, git, curl…), the Nix one wins.
-- `programs.nix-ld` is enabled because brew's prebuilt binaries expect the
-  standard Linux loader at `/lib64`, which NixOS doesn't have otherwise.
+- `programs.nix-ld` (in `modules/base.nix`, since Neovim's Mason uses it
+  too) lets brew's prebuilt binaries run: they expect the standard Linux
+  loader at `/lib64`, which NixOS doesn't have otherwise.
 - Analytics are off (`HOMEBREW_NO_ANALYTICS=1`).
 - Tab completion works for brew and its tools (`gh <Tab>`, `rg --<Tab>`):
   brew's zsh completion directory is added before zsh initializes
@@ -757,7 +825,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v48** | KDE apps: Filelight (what fills the disk) and KDE Partition Manager (format and label drives); new README section "KDE apps". |
+| **v49** | Neovim is now [LazyVim](https://www.lazyvim.org): config in `home/austin/nvim/` (linked as `~/.config/nvim`, plugin versions pinned in `lazy-lock.json`), tools from Nix, the Nix language extra, and `update` [n] for plugin updates. The previous telescope/treesitter setup is replaced. |
+| v48 | KDE apps: Filelight (what fills the disk) and KDE Partition Manager (format and label drives); new README section "KDE apps". |
 | v47 | KCalc (calculator) and KDE ISO Image Writer as Nix packages; ISO Image Writer's Flatpak is removed (uninstalled at the first rebuild). |
 | v46 | Stability: desktop warnings when the SSD reports health problems (smartd, and a `disk-health` command); `update` [s] can apply an update at the next restart instead of switching the running desktop; plasma-manager pinned to a commit so `update` can't change desktop behavior. |
 | v45 | Fix: v44 didn't evaluate (the TRIM-on-LUKS lookup passed the hardware configuration too few arguments). The repository is public, so the installer clones the latest config without a login and CI offers the ISO as a download. |

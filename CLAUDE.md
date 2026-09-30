@@ -23,6 +23,9 @@ enforces this). Each version also gets a git tag.
   flake.lock workflow, bump it themselves via
   `scripts/bump-version.py`; `update-system` also tags and pushes.)
 - Don't bump for docs, comments, CI, or lint config alone.
+- `home/austin/nvim/` (the LazyVim config and its `lazy-lock.json`) is read
+  from the checkout at run time, not built into the system: changes there
+  alone don't bump the version either. (`home/austin/neovim.nix` does.)
 - For a bump: change `version` in flake.nix, update "Current version" at the
   top of README.md, add a row at the top of its Versions table (one or two
   sentences of highlights), and after pushing, tag the pushed commit `vN`
