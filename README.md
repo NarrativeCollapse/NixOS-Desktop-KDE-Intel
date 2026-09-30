@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v50** (git tag `v50`). See [Versions](#versions).
+**Current version: v51** (git tag `v51`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -51,8 +51,8 @@ taskbar icons, tray and exact layout may differ.</sub>
 - **Shell & tools:** zsh + Starship with a Bazzite-style terminal (welcome
   banner, branded fastfetch, eza/atuin/zoxide/direnv and friends; see
   [Terminal](#terminal-bazzite-style)), Neovim with
-  [LazyVim](#neovim-lazyvim), git, Podman (Docker-compatible) + distrobox,
-  LibreWolf.
+  [LazyVim](#neovim-lazyvim), git, Podman (Docker-compatible) + distrobox
+  with BoxBuddy (a window for managing boxes), LibreWolf.
 - **Maintenance:** flakes only (no Nix channels; `nix-shell -p` and
   `<nixpkgs>` use the same nixpkgs as the system), nh for rebuilds and
   weekly cleanup (keeps 14 days and at least 5 generations), weekly store
@@ -91,7 +91,8 @@ modules/
   desktop.nix                    Plasma 6/SDDM, wallpapers, apps (KDE + LibreWolf),
                                  Flatpak, PipeWire, fonts, printing
   gaming.nix                     Steam, Proton-GE, gamescope, GameMode, MangoHud, xpadneo
-  users.nix                      user, sudo, zsh, podman, command-line system packages
+  users.nix                      user, sudo, zsh, podman + distrobox + BoxBuddy,
+                                 command-line system packages
   backup.nix                     restic job for /home (needs one-time setup)
   homebrew.nix                   Homebrew PATH, completions, `brew-update`
   notifications.nix              `notify-desktop` + `notify-failure@`: desktop alerts from services
@@ -218,6 +219,7 @@ Then restore your files from the backup drive (see [Backups](#backups)).
 | Roll back a bad rebuild | `sudo nixos-rebuild switch --rollback`, or pick an older entry in the boot menu |
 | Format the tree | `nix fmt` |
 | Lint, evaluate and boot-test in a VM | `nix flake check` (a few minutes; see below) |
+| Create, open or remove a distrobox (another distro's apps and packages) | **BoxBuddy** in the app menu, or `distrobox create`/`enter` |
 | Steam with MangoHud + GameMode | `steam-hud` (toggle the overlay with Right Shift + F12) |
 | Run a game with Proton-GE | In Steam: right-click the game → Properties → Compatibility → tick "Force the use of…" → pick **GE-Proton** |
 | See boot messages behind the splash | Press **Esc** during boot |
@@ -357,6 +359,17 @@ number is an example.</sub>
   older ones (`distrobox rm <name>`, then `distrobox create …`). This part
   couldn't be tested before release, so treat it as best-effort; if a box
   misbehaves, delete that file's line and recreate the box.
+- **BoxBuddy** (in the app menu) does the same with windows and buttons:
+  create a box from a list of distro images (optionally with systemd, its
+  own home folder or extra shared folders), open a terminal in it, upgrade
+  or remove it, install `.deb`/`.rpm` files into it, and export a box's
+  apps so they appear in Plasma's app menu. Set Konsole as its terminal
+  once (menu → **Set Preferred Terminal**). It only drives distrobox, so
+  boxes made either way show up in both, and they get the shared shell
+  setup above. It's installed from Nix (`modules/users.nix`), not as a
+  Flatpak: the Flatpak's sandbox hides features (custom home folders,
+  extra folders, `.deb`/`.rpm` installs) unless you widen its permissions.
+  It's a GNOME-style (GTK) app, so it doesn't use the Breeze look.
 
 The icons come from JetBrains Mono Nerd Font. Konsole's default profile is
 set by the config to "NixOS", which uses JetBrainsMono Nerd Font Mono so
@@ -830,7 +843,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v50** | The taskbar is docked to the bottom edge instead of floating. |
+| **v51** | BoxBuddy, a window for managing distrobox boxes (Nix package, next to distrobox). |
+| v50 | The taskbar is docked to the bottom edge instead of floating. |
 | v49 | Neovim is now [LazyVim](https://www.lazyvim.org): config in `home/austin/nvim/` (linked as `~/.config/nvim`, plugin versions pinned in `lazy-lock.json`), tools from Nix, the Nix language extra, and `update` [n] for plugin updates. The previous telescope/treesitter setup is replaced. |
 | v48 | KDE apps: Filelight (what fills the disk) and KDE Partition Manager (format and label drives); new README section "KDE apps". |
 | v47 | KCalc (calculator) and KDE ISO Image Writer as Nix packages; ISO Image Writer's Flatpak is removed (uninstalled at the first rebuild). |

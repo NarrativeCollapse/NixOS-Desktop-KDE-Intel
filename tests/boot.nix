@@ -85,7 +85,7 @@
         machine.succeed(
             "su - austin -c 'command -v update update-system update-rollback"
             " update-neovim backup-setup backup-test brew-update disk-health"
-            " nixos-motd'"
+            " nixos-motd boxbuddy-rs'"
         )
         # An unknown option prints the usage and exits 1 (the test shell uses
         # pipefail, so check the output rather than piping it to grep).
