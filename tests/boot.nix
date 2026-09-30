@@ -32,6 +32,10 @@
       # - The test framework reads the kernel's console messages, so it
       #   needs the full log level instead of the quiet boot (hardware.nix).
       boot.consoleLogLevel = lib.mkForce 7;
+      # - The test framework names the system "test" instead of the usual
+      #   label ("${version}-26.05..."); keep the version in it so the check
+      #   of the banner's version line below still means something.
+      system.nixos.label = lib.mkForce "${version}-test";
       # - Enough memory and CPU for Plasma.
       virtualisation = {
         memorySize = 4096;
