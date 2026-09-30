@@ -75,6 +75,11 @@
             "grep -q nix-snowflake-white /home/austin/.config/plasma-org.kde.plasma.desktop-appletsrc",
             timeout=300,
         )
+        # The panel is docked, not floating (saved in plasmashellrc).
+        machine.wait_until_succeeds(
+            "grep -Eq '^floating=(0|false)$' /home/austin/.config/plasmashellrc",
+            timeout=120,
+        )
 
     with subtest("The config's commands are installed and run"):
         machine.succeed(

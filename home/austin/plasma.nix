@@ -21,6 +21,8 @@
 
   # Taskbar tweaks, made by a small Plasma script on the existing panel
   # (declaring the panel in plasma-manager would replace your whole layout):
+  # - the panel sits flush with the screen edge instead of floating (Plasma
+  #   6's default is a floating panel with a gap around it);
   # - pin Google Chrome (the Flatpak, see modules/desktop.nix);
   # - unpin the "default web browser" launcher (LibreWolf; still installed
   #   and in the app menu) and System Settings (still in the app menu);
@@ -40,6 +42,7 @@
       "applications:org.kde.systemsettings.desktop",
     ];
     for (const panel of panels()) {
+      panel.floating = false;
       for (const widget of panel.widgets()) {
         if (widget.type === "org.kde.plasma.icontasks" || widget.type === "org.kde.plasma.taskmanager") {
           widget.currentConfigGroup = ["General"];

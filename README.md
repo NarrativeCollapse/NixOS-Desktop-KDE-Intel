@@ -4,14 +4,15 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v49** (git tag `v49`). See [Versions](#versions).
+**Current version: v50** (git tag `v50`). See [Versions](#versions).
 
-<img src="docs/screenshots/desktop-v43.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
+<img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
 <sub>An example of the desktop this config sets up: Breeze Dark, the default
 wallpaper, the welcome banner in Konsole, the white NixOS snowflake as the
-app launcher, Google Chrome pinned to the taskbar, and the 24-hour clock
-with a military-style date. It's a rendered mockup, not a photo of the laptop; the real
+app launcher, Google Chrome pinned to the taskbar, the taskbar docked to
+the bottom edge (not floating), and the 24-hour clock with a
+military-style date. It's a rendered mockup, not a photo of the laptop; the real
 taskbar icons, tray and exact layout may differ.</sub>
 
 ## What's in it
@@ -698,6 +699,10 @@ What it sets now:
 - **Taskbar tweaks.** Declaring the panel itself would replace your whole
   panel layout, so instead a small Plasma script (`taskbar` in
   `plasma.nix`) edits the existing taskbar, touching nothing else:
+  - **docks the panel** to the screen edge: Plasma 6's default floating
+    panel, with a gap around it, becomes a normal full-width bar. To float
+    it again, right-click the panel → **Show Panel Configuration** →
+    **Floating**, or change `panel.floating` in the script;
   - pins **Google Chrome** (the Flatpak). The icon appears once the Chrome
     Flatpak has finished installing, in the background after the first
     boot of the new version;
@@ -825,7 +830,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v49** | Neovim is now [LazyVim](https://www.lazyvim.org): config in `home/austin/nvim/` (linked as `~/.config/nvim`, plugin versions pinned in `lazy-lock.json`), tools from Nix, the Nix language extra, and `update` [n] for plugin updates. The previous telescope/treesitter setup is replaced. |
+| **v50** | The taskbar is docked to the bottom edge instead of floating. |
+| v49 | Neovim is now [LazyVim](https://www.lazyvim.org): config in `home/austin/nvim/` (linked as `~/.config/nvim`, plugin versions pinned in `lazy-lock.json`), tools from Nix, the Nix language extra, and `update` [n] for plugin updates. The previous telescope/treesitter setup is replaced. |
 | v48 | KDE apps: Filelight (what fills the disk) and KDE Partition Manager (format and label drives); new README section "KDE apps". |
 | v47 | KCalc (calculator) and KDE ISO Image Writer as Nix packages; ISO Image Writer's Flatpak is removed (uninstalled at the first rebuild). |
 | v46 | Stability: desktop warnings when the SSD reports health problems (smartd, and a `disk-health` command); `update` [s] can apply an update at the next restart instead of switching the running desktop; plasma-manager pinned to a commit so `update` can't change desktop behavior. |
