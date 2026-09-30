@@ -135,7 +135,14 @@ in
     ++ (with pkgs.kdePackages; [
       kcalc # calculator
       isoimagewriter # writes ISO images to USB sticks
+      filelight # shows what fills the disk, as a clickable ring chart
     ]);
+
+  # KDE Partition Manager: formats, labels and resizes drives (backup
+  # drives, USB sticks after ISO Image Writer). Through its module rather
+  # than as a package, since it also installs the D-Bus helper and polkit
+  # rules it uses for admin access (asking for your password).
+  programs.partition-manager.enable = true;
 
   # Plasma apps and services installed by default that nothing here uses.
   environment.plasma6.excludePackages = with pkgs.kdePackages; [

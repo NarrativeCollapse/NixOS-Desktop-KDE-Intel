@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v47** (git tag `v47`). See [Versions](#versions).
+**Current version: v48** (git tag `v48`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v43.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -18,8 +18,9 @@ taskbar icons, tray and exact layout may differ.</sub>
 
 - **Desktop:** Plasma 6 on SDDM, Wayland only (X11 apps run through
   Xwayland), in Breeze Dark; PipeWire; declarative Flatpak apps from Flathub
-  (Chrome, VLC, Flatseal, qBittorrent, Bazaar); KCalc and KDE ISO Image
-  Writer added to Plasma's own apps (as Nix packages); Plasma/Konsole
+  (Chrome, VLC, Flatseal, qBittorrent, Bazaar); KCalc, ISO Image Writer,
+  Filelight and Partition Manager added to Plasma's own apps (as Nix
+  packages; see [KDE apps](#kde-apps)); Plasma/Konsole
   settings in the config (plasma-manager); extra wallpapers built into the
   system, with one set on the desktop, lock and login
   screens; Bluetooth via Plasma's BlueDevil; printing with automatic
@@ -519,13 +520,7 @@ services.flatpak.packages = [
   `uninstallUnmanaged = false` leaves apps you installed by hand (Bazaar,
   `flatpak install`) alone. Once every app you want is listed, set it to
   `true` to make the list authoritative; unlisted apps are then removed.
-- **KDE apps are Nix packages instead** (`modules/desktop.nix`, next to
-  the Plasma apps left out): KCalc and ISO Image Writer. As Flatpaks
-  they'd need KDE's Flatpak runtime (several hundred MB, separate from
-  Plasma's own libraries); as Nix packages they use the Qt and Breeze
-  Plasma already has, and update with the system through `update` [s]. To
-  add another KDE app, add `kdePackages.<name>` there (for example
-  `kdePackages.filelight`).
+- **KDE apps are Nix packages instead**; see [KDE apps](#kde-apps).
 - **Why Bazaar and not Discover:** Plasma normally installs Discover, its
   software center, but it's excluded here. Bazaar already covers browsing
   and installing Flathub apps, so Discover would be a second app store.
@@ -537,6 +532,25 @@ services.flatpak.packages = [
   in `modules/desktop.nix`.
 - List what's installed now, to copy into the config:
   `flatpak list --app --columns=application`.
+
+## KDE apps
+
+Plasma brings its core apps (Dolphin, Konsole, Kate, Okular, Gwenview,
+Spectacle, Ark, System Monitor). Added on top, in `modules/desktop.nix`
+next to the Plasma apps that are left out:
+
+| App | What it's for |
+| --- | --- |
+| **KCalc** | Calculator. For quick sums the app launcher and KRunner (Alt+Space) also calculate: type `12*7`. |
+| **ISO Image Writer** | Writes ISO images (such as the [installer](#reinstalling-the-installer-iso)) to USB sticks. |
+| **Filelight** | Shows what fills the disk as a clickable ring chart; handy for Steam games, Flatpak runtimes and old Nix generations (`nh clean` removes those). |
+| **Partition Manager** | Formats, labels and resizes drives, for example a USB stick after ISO Image Writer, or a backup drive (`backup-setup` can also format one). Asks for your password for disk changes. Added with `programs.partition-manager.enable`, which also installs the admin helper it needs. |
+
+They're Nix packages, not Flatpaks: as Flatpaks they'd need KDE's Flatpak
+runtime (several hundred MB, separate from Plasma's own libraries), while as
+Nix packages they use the Qt and Breeze Plasma already has and update with
+the system through `update` [s]. To add another, put `kdePackages.<name>`
+in the list there (for example `kdePackages.kolourpaint`).
 
 ## Wallpapers
 
@@ -700,7 +714,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v47** | KCalc (calculator) and KDE ISO Image Writer as Nix packages; ISO Image Writer's Flatpak is removed (uninstalled at the first rebuild). |
+| **v48** | KDE apps: Filelight (what fills the disk) and KDE Partition Manager (format and label drives); new README section "KDE apps". |
+| v47 | KCalc (calculator) and KDE ISO Image Writer as Nix packages; ISO Image Writer's Flatpak is removed (uninstalled at the first rebuild). |
 | v46 | Stability: desktop warnings when the SSD reports health problems (smartd, and a `disk-health` command); `update` [s] can apply an update at the next restart instead of switching the running desktop; plasma-manager pinned to a commit so `update` can't change desktop behavior. |
 | v45 | Fix: v44 didn't evaluate (the TRIM-on-LUKS lookup passed the hardware configuration too few arguments). The repository is public, so the installer clones the latest config without a login and CI offers the ISO as a download. |
 | v44 | Installer ISO (`nix build .#installer-iso`): live Plasma with panel Wi-Fi that works, and `install-shitbox`, which erases a chosen disk, sets up LUKS and installs this config. TRIM on the encrypted disk now follows `hardware-configuration.nix`, so a reinstall's new disk UUID needs no edits. |
