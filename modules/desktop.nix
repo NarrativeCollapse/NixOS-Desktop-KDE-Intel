@@ -5,7 +5,7 @@ let
   # (one of the images in wallpapers/).
   wallpaper = ../wallpapers/gas-masks.jpg;
 
-  # Installed with the KDE apps (see "KDE apps" below; a file can set
+  # Installed with the apps (see "Apps" below; a file can set
   # environment.systemPackages only once):
   wallpaperPackages = [
     # Extra wallpapers: the images in wallpapers/ at the repo root, where
@@ -109,29 +109,17 @@ in
   };
 
   ################################
-  # Mullvad VPN (official module)
+  # Apps: added and left out
   ################################
 
-  # The module runs the daemon and installs the app itself, so don't also
-  # list mullvad-vpn in environment.systemPackages.
-  services.mullvad-vpn = {
-    enable = true;
-    package = pkgs.mullvad-vpn; # GUI build (use pkgs.mullvad for CLI-only)
-  };
-
-  # Mullvad & modern DNS setups work best with systemd-resolved.
-  services.resolved.enable = true;
-
-  ################################
-  # KDE apps: added and left out
-  ################################
-
-  # Added on top of Plasma's own apps. Nix packages rather than Flatpaks:
-  # they use the Qt and Breeze already installed for Plasma (a Flatpak would
-  # need KDE's Flatpak runtime, several hundred MB) and update with the
-  # system. Add another as kdePackages.<name>.
+  # Desktop apps installed as Nix packages (the Flatpaks are above; Mullvad's
+  # app comes with its module in network.nix). The KDE apps are Nix packages
+  # rather than Flatpaks: they use the Qt and Breeze already installed for
+  # Plasma (a Flatpak would need KDE's Flatpak runtime, several hundred MB)
+  # and update with the system. Add another as kdePackages.<name>.
   environment.systemPackages =
     wallpaperPackages
+    ++ [ pkgs.librewolf ] # browser (Chrome is a Flatpak)
     ++ (with pkgs.kdePackages; [
       kcalc # calculator
       isoimagewriter # writes ISO images to USB sticks
@@ -194,43 +182,9 @@ in
   };
 
   ################################
-  # Bluetooth
-  ################################
-
-  # Powered on at boot by default, so the Xbox controller connects at login.
-  # No blueman: Plasma already ships BlueDevil when Bluetooth is enabled, and
-  # blueman would add a second tray applet.
-  hardware.bluetooth.enable = true;
-
-  ################################
-  # NetworkManager
-  ################################
-
-  networking.networkmanager = {
-    enable = true;
-    dns = "systemd-resolved";
-  };
-
-  ################################
-  # Laptop: lid / power behavior
-  ################################
-
-  # Closing the lid suspends on battery (the default), but not on AC (e.g.
-  # docked or downloading). Remove this to always suspend.
-  services.logind.settings.Login.HandleLidSwitchExternalPower = "ignore";
-
-  ################################
   # Printing
   ################################
 
+  # CUPS; network printers are found through mDNS (Avahi, in network.nix).
   services.printing.enable = true;
-
-  # mDNS/DNS-SD so network printers (and other .local devices) are found
-  # automatically. openFirewall allows mDNS (UDP 5353) in, which discovery
-  # needs.
-  services.avahi = {
-    enable = true;
-    nssmdns4 = true;
-    openFirewall = true;
-  };
 }

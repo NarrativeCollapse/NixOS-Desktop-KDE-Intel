@@ -26,9 +26,10 @@ in
 
     ../../modules/base.nix
     ../../modules/hardware.nix
+    ../../modules/network.nix
     ../../modules/desktop.nix
     ../../modules/gaming.nix
-    ../../modules/shell.nix
+    ../../modules/users.nix
     ../../modules/backup.nix
     ../../modules/homebrew.nix
     ../../modules/notify-failure.nix

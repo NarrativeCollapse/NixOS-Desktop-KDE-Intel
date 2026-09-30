@@ -66,7 +66,7 @@ in
   ];
 
   ################################
-  # Swap: zram
+  # Memory: zram swap + oomd
   ################################
 
   # No disk swap is configured (see hosts/shitbox/hardware-configuration.nix).
@@ -76,7 +76,22 @@ in
     enable = true;
     memoryPercent = 50;
   };
-  # Its VM tuning is in the sysctl block below.
+  # Kernel memory tuning for zram (the values Fedora and Pop!_OS use):
+  # swapping to RAM is cheap, so prefer it over dropping file cache
+  # (swappiness above 100); skip swap read-ahead, which only helps real disks
+  # (page-cluster 0); and keep kswapd from reclaiming in bursts.
+  boot.kernel.sysctl = {
+    "vm.swappiness" = 180;
+    "vm.page-cluster" = 0;
+    "vm.watermark_boost_factor" = 0;
+    "vm.watermark_scale_factor" = 125;
+
+    # Kernel-info hardening — enable if you're security-motivated; can
+    # inconvenience debugging/profiling tools. (Network hardening is in
+    # network.nix.)
+    # "kernel.dmesg_restrict" = 1;
+    # "kernel.kptr_restrict" = 2;
+  };
 
   # When memory really runs out, systemd-oomd closes the app using the most
   # (its whole process group) after sustained memory pressure, instead of
@@ -89,6 +104,10 @@ in
   ################################
 
   services.power-profiles-daemon.enable = true;
+
+  # Closing the lid suspends on battery (the default), but not on AC (e.g.
+  # docked or downloading). Remove this to always suspend.
+  services.logind.settings.Login.HandleLidSwitchExternalPower = "ignore";
 
   # Intel thermal management. Separate concern from power-profiles-daemon
   # (which handles the CPU governor/EPP, not thermal trip points).
@@ -138,56 +157,14 @@ in
     ];
   };
 
-  # The NixOS firewall is on by default with nothing open; the only ports
-  # opened are by Steam Remote Play (gaming.nix) and Avahi (desktop.nix).
-  # Mullvad manages its own killswitch and routing, so don't add VPN rules
-  # here that would fight the daemon.
-
   ################################
-  # Kernel sysctls: zram tuning + network hardening
+  # Bluetooth
   ################################
 
-  boot.kernel.sysctl = {
-    # zram (the values Fedora and Pop!_OS use): swapping to RAM is cheap, so
-    # prefer it over dropping file cache (swappiness above 100); skip
-    # swap read-ahead, which only helps real disks (page-cluster 0); and keep
-    # kswapd from reclaiming in bursts.
-    "vm.swappiness" = 180;
-    "vm.page-cluster" = 0;
-    "vm.watermark_boost_factor" = 0;
-    "vm.watermark_scale_factor" = 125;
-
-    # Network hardening for untrusted Wi-Fi. rp_filter is deliberately not
-    # set: the NixOS firewall handles reverse-path checking, and strict
-    # values can interfere with Mullvad/WireGuard routing.
-    # Ignore ICMP redirects (MITM vector on hostile networks).
-    "net.ipv4.conf.all.accept_redirects" = 0;
-    "net.ipv4.conf.default.accept_redirects" = 0;
-    "net.ipv6.conf.all.accept_redirects" = 0;
-    "net.ipv6.conf.default.accept_redirects" = 0;
-    # This machine is not a router; don't emit redirects either.
-    "net.ipv4.conf.all.send_redirects" = 0;
-    "net.ipv4.conf.default.send_redirects" = 0;
-    # Drop source-routed packets.
-    "net.ipv4.conf.all.accept_source_route" = 0;
-    "net.ipv6.conf.all.accept_source_route" = 0;
-    # SYN-flood protection (kernel default, made explicit).
-    "net.ipv4.tcp_syncookies" = 1;
-
-    # Kernel-info hardening — enable if you're security-motivated; can
-    # inconvenience debugging/profiling tools:
-    # "kernel.dmesg_restrict" = 1;
-    # "kernel.kptr_restrict" = 2;
-  };
-
-  # If you want SSH later (openFirewall opens port 22):
-  #
-  # services.openssh = {
-  #   enable = true;
-  #   openFirewall = true;
-  #   settings.PasswordAuthentication = false;
-  # };
-  # services.fail2ban.enable = true;  # only worth it once SSH is exposed
+  # Powered on at boot by default, so the Xbox controller connects at login.
+  # No blueman: Plasma already ships BlueDevil when Bluetooth is enabled, and
+  # blueman would add a second tray applet.
+  hardware.bluetooth.enable = true;
 
   ################################
   # Optional: TPM-backed LUKS unlock

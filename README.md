@@ -83,10 +83,14 @@ hosts/installer/
   configuration.nix              the installer ISO: live Plasma + `install-shitbox`
 modules/
   base.nix                       nix settings, nh + GC, locale, unfree allowlist
-  hardware.nix                   boot, Plymouth splash, TRIM, graphics, zram, smartd, sysctls, firewall
-  desktop.nix                    Plasma 6/SDDM, KDE apps, PipeWire, Flatpak, Mullvad, fonts, lid
+  hardware.nix                   boot, Plymouth splash, zram + oomd, power, lid, firmware,
+                                 disk health, graphics, Bluetooth
+  network.nix                    NetworkManager, resolved, Mullvad, mDNS, firewall,
+                                 network hardening
+  desktop.nix                    Plasma 6/SDDM, wallpapers, apps (KDE + LibreWolf),
+                                 Flatpak, PipeWire, fonts, printing
   gaming.nix                     Steam, Proton-GE, gamescope, GameMode, xpadneo
-  shell.nix                      user, sudo, podman, system packages, zsh
+  users.nix                      user, sudo, zsh, podman, command-line system packages
   backup.nix                     restic job for /home (needs one-time setup)
   homebrew.nix                   Homebrew PATH, completions, `brew-update`
   notify-failure.nix             desktop notification when a background job fails
@@ -692,13 +696,14 @@ pull request.
 Each lives next to the config it would change, with the reasoning in
 comments:
 
-- TPM-backed LUKS unlock, `kernel.dmesg_restrict` / `kptr_restrict`, and
-  SSH + fail2ban (`modules/hardware.nix`)
+- TPM-backed LUKS unlock and `kernel.dmesg_restrict` / `kptr_restrict`
+  (`modules/hardware.nix`)
+- SSH + fail2ban (`modules/network.nix`)
 - `hardware.xone` for wired/dongle Xbox pads and `gamescope.capSysNice`
   (`modules/gaming.nix`)
 - A `nixpkgs-unstable` input for cherry-picking newer packages (`flake.nix`)
 - `trusted-users` and `warn-dirty` (`modules/base.nix`)
-- `sudo-rs` in place of sudo (`modules/shell.nix`)
+- `sudo-rs` in place of sudo (`modules/users.nix`)
 
 ## Versions
 

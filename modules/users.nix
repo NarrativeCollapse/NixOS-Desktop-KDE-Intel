@@ -38,17 +38,14 @@
   };
 
   ################################
-  # System packages (CLI + desktop apps)
+  # System packages (command line)
   ################################
 
-  # Kept lean: only what's genuinely system-wide. Per-user tools and editor
-  # config live in Home Manager (home/austin/), fast-moving CLI tools in the
-  # Brewfile, and apps that come with a module (podman, mullvad) aren't
-  # repeated here.
+  # Kept lean: only what's genuinely system-wide. Desktop apps are in
+  # desktop.nix, per-user tools and editor config in Home Manager
+  # (home/austin/), fast-moving CLI tools in the Brewfile, and apps that come
+  # with a module (podman, mullvad) aren't repeated here.
   environment.systemPackages = with pkgs; [
-    # Browser
-    librewolf
-
     # Containers
     podman-compose
     distrobox
