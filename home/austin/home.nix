@@ -1,5 +1,6 @@
 {
   config,
+  osConfig,
   pkgs,
   lib,
   ...
@@ -47,9 +48,9 @@
       # Gaming helper: MangoHud overlay + GameMode wrapping Steam.
       steam-hud = "MANGOHUD=1 gamemoderun steam";
 
-      # Rebuild from ~/nixos-config. (`nh os switch` does the same with a
-      # package diff; nh is set up in modules/base.nix.)
-      rebuild = "sudo nixos-rebuild switch --flake ~/nixos-config#shitbox";
+      # Rebuild from the config checkout (nh's flake path, modules/base.nix).
+      # `nh os switch` does the same with a package diff.
+      rebuild = "sudo nixos-rebuild switch --flake ${osConfig.programs.nh.flake}#${osConfig.networking.hostName}";
     };
   };
 

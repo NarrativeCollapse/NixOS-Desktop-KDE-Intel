@@ -1,6 +1,8 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 let
+  # What's backed up: austin's home folder.
+  home = config.users.users.austin.home;
   # Touched after every successful backup; read by backup-reminder below.
   stamp = "/var/lib/restic-home-last-success";
   staleDays = 7;
@@ -37,34 +39,34 @@ in
     repository = "/mnt/backup/restic-shitbox";
     passwordFile = "/etc/secrets/restic-password";
 
-    paths = [ "/home/austin" ];
+    paths = [ home ];
 
     # Excludes tuned for this machine: everything below is either a cache or
     # re-downloadable. The Steam library alone would dwarf the real data.
     # Steam's userdata/, config/ and steamapps/compatdata/ (Proton prefixes,
     # where games without Steam Cloud keep their saves) are still backed up;
     # restic dedups the near-identical Wine files across prefixes.
-    exclude = [
-      "/home/austin/.cache"
-      "/home/austin/.local/share/Steam/steamapps/common" # installed games
-      "/home/austin/.local/share/Steam/steamapps/shadercache"
-      "/home/austin/.local/share/Steam/steamapps/downloading"
-      "/home/austin/.local/share/Steam/steamapps/temp"
-      "/home/austin/.local/share/Steam/appcache"
-      "/home/austin/.local/share/Steam/depotcache"
-      "/home/austin/.local/share/Steam/logs"
-      "/home/austin/.local/share/Steam/package" # Steam client updates
-      "/home/austin/.local/share/Steam/ubuntu12_32" # Steam client runtime
-      "/home/austin/.local/share/Steam/ubuntu12_64"
-      "/home/austin/.steam"
-      "/home/austin/.local/share/Trash"
-      "/home/austin/.local/share/containers" # podman images/layers
-      "/home/austin/.local/share/baloo" # KDE file indexer
-      "/home/austin/.var/app/*/cache" # flatpak app caches
-      "/home/austin/.npm"
-      "/home/austin/.cargo"
-      "/home/austin/**/node_modules"
-      "/home/austin/**/.direnv"
+    exclude = map (path: "${home}/${path}") [
+      ".cache"
+      ".local/share/Steam/steamapps/common" # installed games
+      ".local/share/Steam/steamapps/shadercache"
+      ".local/share/Steam/steamapps/downloading"
+      ".local/share/Steam/steamapps/temp"
+      ".local/share/Steam/appcache"
+      ".local/share/Steam/depotcache"
+      ".local/share/Steam/logs"
+      ".local/share/Steam/package" # Steam client updates
+      ".local/share/Steam/ubuntu12_32" # Steam client runtime
+      ".local/share/Steam/ubuntu12_64"
+      ".steam"
+      ".local/share/Trash"
+      ".local/share/containers" # podman images/layers
+      ".local/share/baloo" # KDE file indexer
+      ".var/app/*/cache" # flatpak app caches
+      ".npm"
+      ".cargo"
+      "**/node_modules"
+      "**/.direnv"
     ];
 
     timerConfig = {
@@ -98,7 +100,7 @@ in
     # Runs only when backup, prune and check all succeeded.
     serviceConfig.ExecStartPost = [ "${pkgs.coreutils}/bin/touch ${stamp}" ];
     # A run that starts and fails (full drive, wrong password, corrupt repo)
-    # raises a desktop notification; see modules/notify-failure.nix.
+    # raises a desktop notification; see modules/notifications.nix.
     onFailure = [ "notify-failure@%n.service" ];
   };
 
@@ -154,7 +156,7 @@ in
           [[ $reply == [yY]* ]]
         }
 
-        echo "Backup setup: daily encrypted backups of /home/austin to an external drive."
+        echo "Backup setup: daily encrypted backups of ${home} to an external drive."
         echo
 
         # 1. The repository password.
@@ -252,9 +254,9 @@ in
       text = ''
         dir=$(realpath -m "''${1:-$HOME/Documents}")
         case $dir in
-          /home/austin | /home/austin/*) ;;
+          ${home} | ${home}/*) ;;
           *)
-            echo "Pick a folder inside /home/austin (the backup only covers your home)."
+            echo "Pick a folder inside ${home} (the backup only covers your home)."
             exit 1
             ;;
         esac

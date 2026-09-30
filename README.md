@@ -93,7 +93,7 @@ modules/
   users.nix                      user, sudo, zsh, podman, command-line system packages
   backup.nix                     restic job for /home (needs one-time setup)
   homebrew.nix                   Homebrew PATH, completions, `brew-update`
-  notify-failure.nix             desktop notification when a background job fails
+  notifications.nix              `notify-desktop` + `notify-failure@`: desktop alerts from services
   updates.nix                    `update` menu: system, Flatpak and Homebrew updates
 home/austin/home.nix             zsh, starship, git, neovim, mangohud
 home/austin/bling.nix            Bazzite-style MOTD, fastfetch, CLI tools + aliases
@@ -637,14 +637,17 @@ capture it first.
 
 ## Failure alerts
 
-`modules/notify-failure.nix` provides `notify-failure@`, which background
-jobs use to raise a critical desktop notification when they fail, with the
-`journalctl` command that shows why. It's attached to:
+`modules/notifications.nix` gets alerts from system services onto your
+desktop. It has two parts:
 
-- `restic-backups-home` (system job; the alert goes to your session if
-  you're logged in)
-
-To attach it to another service: `onFailure = [ "notify-failure@%n.service" ];`.
+- `notify-desktop`, the one place that sends a critical notification into
+  your Plasma session from a background service (skipped if you're not
+  logged in). Other modules call it as `lib.getExe config.my.notifyDesktop`;
+  smartd's disk warnings below use it.
+- `notify-failure@`, which a service attaches with
+  `onFailure = [ "notify-failure@%n.service" ];` to raise a notification
+  when it fails, with the `journalctl` command that shows why. The backup
+  job (`restic-backups-home`) uses it.
 
 **Disk health** (`services.smartd` in `modules/hardware.nix`): smartd reads
 the SSD's own health counters (spare blocks, wear, media errors,

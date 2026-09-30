@@ -33,7 +33,8 @@
   ################################
 
   # `nh os switch` rebuilds from NH_FLAKE; `nh clean` replaces nix.gc (the nh
-  # module warns if both are enabled).
+  # module warns if both are enabled). `flake` is where the config checkout
+  # lives; `update` and the `rebuild` alias read it from here too.
   programs.nh = {
     enable = true;
     flake = "/home/austin/nixos-config";

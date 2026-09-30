@@ -32,7 +32,7 @@ in
     ../../modules/users.nix
     ../../modules/backup.nix
     ../../modules/homebrew.nix
-    ../../modules/notify-failure.nix
+    ../../modules/notifications.nix
     ../../modules/updates.nix
   ];
 

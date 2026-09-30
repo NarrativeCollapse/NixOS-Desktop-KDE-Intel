@@ -5,7 +5,8 @@
 # part shows what would change and asks before applying anything. Nothing
 # here runs on a timer.
 let
-  flake = "/home/austin/nixos-config";
+  # The config checkout, defined once as nh's flake path (base.nix).
+  inherit (config.programs.nh) flake;
 
   confirm = ''
     confirm() {

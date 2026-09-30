@@ -1,16 +1,17 @@
-{ pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
-  # smartd's alert: a desktop notification in austin's session (the same
-  # route as notify-failure.nix; skipped if austin isn't logged in, but the
-  # warning repeats daily and is in `journalctl -u smartd`).
+  # smartd's alert, through notify-desktop (notifications.nix). If austin
+  # isn't logged in it's skipped, but the warning repeats daily and is in
+  # `journalctl -u smartd`.
   smartdNotify = pkgs.writeShellScript "smartd-notify" ''
-    bus=/run/user/$(${pkgs.coreutils}/bin/id -u austin)/bus
-    [ -S "$bus" ] || exit 0
-    ${pkgs.util-linux}/bin/runuser -u austin -- \
-      ${pkgs.coreutils}/bin/env DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" \
-      ${pkgs.libnotify}/bin/notify-send --urgency=critical --app-name=smartd \
-      --icon=drive-harddisk "Disk problem: $SMARTD_DEVICESTRING" \
+    exec ${lib.getExe config.my.notifyDesktop} smartd drive-harddisk \
+      "Disk problem: $SMARTD_DEVICESTRING" \
       "$SMARTD_MESSAGE. Check your backups; details: disk-health"
   '';
 in
