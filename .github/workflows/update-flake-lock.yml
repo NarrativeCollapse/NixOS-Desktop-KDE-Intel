@@ -33,7 +33,7 @@ jobs:
       - name: Bump version
         id: bump
         if: steps.update.outputs.changed == 'true'
-        run: echo "version=$(python3 .github/workflows/bump-version.py update.log)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(python3 scripts/bump-version.py update.log)" >> "$GITHUB_OUTPUT"
 
       # Check and build before opening the pull request. The PR's own Check
       # run waits for a manual "Approve and run" (GitHub holds workflow runs

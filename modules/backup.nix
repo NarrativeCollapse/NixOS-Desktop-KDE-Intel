@@ -148,96 +148,10 @@ in
         systemd
         util-linux
       ];
-      text = ''
-        password=/etc/secrets/restic-password
-        confirm() {
-          local reply
-          read -r -p "$1 [y/N] " reply
-          [[ $reply == [yY]* ]]
-        }
-
-        echo "Backup setup: daily encrypted backups of ${home} to an external drive."
-        echo
-
-        # 1. The repository password.
-        if sudo test -s "$password"; then
-          echo "OK  Backup password: already set ($password)."
-        else
-          echo "Step 1 of 3: the backup password."
-          echo "Every backup is encrypted with it. If it's lost, the backups can never be read."
-          pw=$(head -c 32 /dev/urandom | base64)
-          echo
-          echo "    $pw"
-          echo
-          echo "Save it now somewhere OFF this laptop (password manager, printed sheet)."
-          read -r -p "Type 'saved' once it's stored: " reply
-          if [ "$reply" != saved ]; then
-            echo "Stopped; nothing was changed."
-            exit 1
-          fi
-          sudo install -d -m 700 /etc/secrets
-          sudo install -m 600 /dev/stdin "$password" <<< "$pw"
-          echo "OK  Password saved to $password (readable by root only)."
-        fi
-        echo
-
-        # 2. The drive: a partition labelled BACKUP (mounted at /mnt/backup).
-        if [ -e /dev/disk/by-label/BACKUP ]; then
-          echo "OK  Backup drive: found a partition labelled BACKUP ($(readlink -f /dev/disk/by-label/BACKUP))."
-        else
-          echo "Step 2 of 3: the backup drive."
-          read -r -p "Plug in the external drive to use, then press Enter. " _
-          sleep 2
-          mapfile -t usb < <(lsblk -dnro NAME,TRAN | awk '$2 == "usb" { print $1 }')
-          if [ "''${#usb[@]}" -eq 0 ]; then
-            echo "No USB drive found. Plug one in and run backup-setup again."
-            exit 1
-          fi
-          echo
-          for disk in "''${usb[@]}"; do
-            lsblk -o NAME,SIZE,FSTYPE,LABEL,MODEL "/dev/$disk"
-            echo
-          done
-          read -r -p "Partition to use (e.g. sdb1). EVERYTHING on it will be erased: " part
-          disk=$(lsblk -dno PKNAME "/dev/$part" 2>/dev/null || true)
-          [ -n "$disk" ] || disk=$part
-          if [[ ! -b /dev/$part || " ''${usb[*]} " != *" $disk "* ]]; then
-            echo "'$part' isn't one of the USB drives listed above. Nothing was changed."
-            exit 1
-          fi
-          read -r -p "Type '$part' again to erase it and format it for backups: " again
-          if [ "$again" != "$part" ]; then
-            echo "Stopped; nothing was changed."
-            exit 1
-          fi
-          # Unmount it if the desktop mounted it when it was plugged in.
-          if [ -n "$(lsblk -no MOUNTPOINTS "/dev/$part" | tr -d '[:space:]')" ]; then
-            sudo umount "/dev/$part"
-          fi
-          sudo mkfs.ext4 -F -L BACKUP "/dev/$part"
-          sudo udevadm settle
-          echo "OK  /dev/$part is formatted and labelled BACKUP."
-        fi
-        echo
-
-        # 3. Mount it and run the first backup.
-        echo "Step 3 of 3: the first backup."
-        if ! mountpoint -q /mnt/backup; then
-          sudo mount /mnt/backup
-        fi
-        if ! confirm "Run the first backup now? It can take a while."; then
-          echo "Setup is done. The daily backup runs whenever the drive is mounted."
-          exit 0
-        fi
-        if ! sudo systemctl start restic-backups-home; then
-          echo "The backup failed. See what happened: journalctl -u restic-backups-home"
-          exit 1
-        fi
-        sudo restic-home snapshots
-        echo
-        echo "Backups are set up. They run daily while the drive is mounted at /mnt/backup;"
-        echo "after plugging it in later, mount it with: sudo mount /mnt/backup"
-      '';
+      runtimeEnv = {
+        BACKUP_HOME = home;
+      };
+      text = builtins.readFile ../scripts/lib/confirm.sh + builtins.readFile ../scripts/backup-setup.sh;
     })
 
     # `backup-test [folder]`: a real test restore. Restores a folder
@@ -251,53 +165,10 @@ in
         findutils
         util-linux
       ];
-      text = ''
-        dir=$(realpath -m "''${1:-$HOME/Documents}")
-        case $dir in
-          ${home} | ${home}/*) ;;
-          *)
-            echo "Pick a folder inside ${home} (the backup only covers your home)."
-            exit 1
-            ;;
-        esac
-        if ! mountpoint -q /mnt/backup; then
-          echo "The backup drive isn't mounted. Plug it in and run: sudo mount /mnt/backup"
-          exit 1
-        fi
-
-        tmp=$(mktemp -d)
-        trap 'sudo rm -rf "$tmp"' EXIT
-        echo "Restoring $dir from the latest backup into a temporary folder..."
-        sudo restic-home restore latest --target "$tmp" --include "$dir"
-        sudo chown -R "$(id -u):$(id -g)" "$tmp"
-        if [ ! -d "$tmp$dir" ]; then
-          echo "FAILED: $dir isn't in the latest backup (or nothing could be restored)."
-          exit 1
-        fi
-
-        same=0 changed=0 gone=0
-        while IFS= read -r -d "" restored; do
-          current=''${restored#"$tmp"}
-          if [ ! -e "$current" ]; then
-            gone=$((gone + 1))
-          elif cmp -s "$restored" "$current"; then
-            same=$((same + 1))
-          else
-            changed=$((changed + 1))
-          fi
-        done < <(find "$tmp$dir" -type f -print0)
-        total=$((same + changed + gone))
-        if [ "$total" -eq 0 ]; then
-          echo "FAILED: the restore produced no files."
-          exit 1
-        fi
-
-        echo
-        echo "Restore test passed: $total files restored from the latest backup."
-        echo "  $same identical to the files on disk now"
-        echo "  $changed changed since that backup (normal for files you've edited)"
-        echo "  $gone deleted since that backup"
-      '';
+      runtimeEnv = {
+        BACKUP_HOME = home;
+      };
+      text = builtins.readFile ../scripts/backup-test.sh;
     })
   ];
 

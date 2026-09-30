@@ -75,7 +75,6 @@ docs/screenshots/                images used in this README
   check.yml                      CI: nix flake check + full system build
   iso.yml                        test-builds the installer ISO (run by hand)
   update-flake-lock.yml          flake.lock update pull request (run by hand)
-  bump-version.py                version bump used by the update workflow
 hosts/shitbox/
   configuration.nix              host: hostname, stateVersion, imports, TRIM on LUKS
   hardware-configuration.nix     generated; LUKS + ext4 root + EFI boot
@@ -98,7 +97,25 @@ modules/
 home/austin/home.nix             zsh, starship, git, neovim
 home/austin/bling.nix            Bazzite-style MOTD, fastfetch, CLI tools + aliases
 home/austin/plasma.nix           Plasma/KDE settings via plasma-manager (Konsole profile)
+scripts/                         the longer shell scripts, as plain bash (see below)
+  update.sh, update-system.sh    the `update` menu and its [s] System part
+  backup-setup.sh, backup-test.sh
+  brew-update.sh                 [b] Homebrew
+  install-shitbox.sh             the installer ISO's installer
+  nixos-motd.sh                  the welcome banner
+  lib/confirm.sh                 the shared yes/no prompt
+  bump-version.py                version bump used by `update` and the update workflow
 ```
+
+**Where things go.** Each module covers one topic, and anything tied to a
+feature lives with it, including its Home Manager settings (MangoHud sits in
+`gaming.nix`, the wallpaper settings in `desktop.nix`). `home/austin/` holds
+the personal setup: shell, git, editor, terminal look and Plasma. Scripts
+longer than about 20 lines are plain bash files in `scripts/`; the module
+that installs one reads it with `builtins.readFile` and passes in the few
+values it needs from the config as environment variables (`runtimeEnv`, for
+example `CONFIG_FLAKE` for the config path). The build runs shellcheck on
+every script. Shorter scripts stay inline in their module.
 
 ## Install
 
@@ -676,7 +693,7 @@ Three GitHub Actions workflows live in `.github/workflows/`:
   normally `update` does this on the laptop): runs `nix flake update` and,
   if anything changed, bumps the config version
   (flake.nix, the "Current version" line and a Versions row, via
-  `.github/workflows/bump-version.py`), checks and builds the result, and
+  `scripts/bump-version.py`), checks and builds the result, and
   only then opens a pull request listing what changed. After merging it,
   run `git pull && rebuild` on the laptop and tag the merge commit. No
   updates, no pull request. The pull request's own Check run
