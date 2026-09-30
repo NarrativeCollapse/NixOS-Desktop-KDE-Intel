@@ -75,7 +75,10 @@
             "su - austin -c 'command -v update update-system update-rollback"
             " backup-setup backup-test brew-update disk-health nixos-motd'"
         )
-        machine.succeed("su - austin -c 'update bogus' 2>&1 | grep -q Usage")
+        # An unknown option prints the usage and exits 1 (the test shell uses
+        # pipefail, so check the output rather than piping it to grep).
+        usage = machine.fail("su - austin -c 'update bogus' 2>&1")
+        assert "Usage: update" in usage, usage
         motd = machine.succeed("su - austin -c nixos-motd")
         assert "Welcome to NixOS" in motd, motd
         machine.succeed("su - austin -c nixos-system-info | grep -q -- '${version}'")
