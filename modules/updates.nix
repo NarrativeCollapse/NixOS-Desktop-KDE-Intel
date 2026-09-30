@@ -1,7 +1,7 @@
 { config, pkgs, ... }:
 
 # Updates happen only when you ask for them. `update` opens a menu (or takes
-# system / flatpak / brew / firmware / all / rollback as an argument); each
+# system / flatpak / brew / neovim / firmware / all / rollback as an argument); each
 # part shows what would change and asks before applying anything. Nothing
 # here runs on a timer. The longer scripts are in scripts/ (update.sh,
 # update-system.sh, update-neovim.sh); the short ones are inline below.

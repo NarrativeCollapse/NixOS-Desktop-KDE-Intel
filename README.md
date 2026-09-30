@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v51** (git tag `v51`). See [Versions](#versions).
+**Current version: v52** (git tag `v52`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -215,7 +215,7 @@ Then restore your files from the backup drive (see [Backups](#backups)).
 | Task | Command |
 | --- | --- |
 | Rebuild after editing | `rebuild` or `nh os switch` (works from any directory) |
-| Update the system, Flatpaks or Homebrew tools | `update`, then pick (see [Updates](#updates)) |
+| Update the system, Flatpaks, Homebrew tools, Neovim plugins or firmware | `update`, then pick (see [Updates](#updates)) |
 | Roll back a bad rebuild | `sudo nixos-rebuild switch --rollback`, or pick an older entry in the boot menu |
 | Format the tree | `nix fmt` |
 | Lint, evaluate and boot-test in a VM | `nix flake check` (a few minutes; see below) |
@@ -287,6 +287,15 @@ changes anything.
   commit (see [Plasma settings](#plasma-settings)).
 - **[f] Flatpak** runs `flatpak update`, which lists pending updates and
   asks before installing them. System-wide apps may ask for your password.
+- **[b] Homebrew** (`brew-update`, in `modules/homebrew.nix`) installs
+  Homebrew the first time (after asking), runs `brew update`, then lists
+  formulas that are missing, outdated, or installed but not in the
+  Brewfile, and installs, upgrades and removes them to match only on a
+  yes.
+- **[n] Neovim** (`update-neovim`): after a `git pull` and a yes, updates
+  LazyVim and its plugins (`:Lazy sync`), lists the plugins that changed,
+  and commits and pushes the new pins in `home/austin/nvim/lazy-lock.json`.
+  See [Neovim (LazyVim)](#neovim-lazyvim) for going back.
 - **[w] Firmware** (`update-firmware`) asks fwupd for BIOS and device
   firmware updates from the LVFS, and `fwupdmgr update` asks before
   installing and before any reboot. Many HP consumer laptops get none, in
@@ -297,15 +306,6 @@ changes anything.
   `~/nixos-config` still holds the newer version, so the next `rebuild` or
   `update` returns to it; to stay back, undo the change there (for
   example `git revert HEAD`) and push.
-- **[b] Homebrew** (`brew-update`, in `modules/homebrew.nix`) installs
-  Homebrew the first time (after asking), runs `brew update`, then lists
-  formulas that are missing, outdated, or installed but not in the
-  Brewfile, and installs, upgrades and removes them to match only on a
-  yes.
-- **[n] Neovim** (`update-neovim`): after a `git pull` and a yes, updates
-  LazyVim and its plugins (`:Lazy sync`), lists the plugins that changed,
-  and commits and pushes the new pins in `home/austin/nvim/lazy-lock.json`.
-  See [Neovim (LazyVim)](#neovim-lazyvim) for going back.
 
 Still scheduled, because none of them change what's installed: nh's weekly
 cleanup of old generations, weekly store deduplication, the daily backup,
@@ -321,7 +321,7 @@ terminal the Nix way. Bazzite installs these tools with Homebrew
 (`ujust bazzite-cli`) and appends lines to your shell's rc file; here Home
 Manager declares all of it. Adapted from Bazzite (Apache-2.0).
 
-<img src="docs/screenshots/welcome-banner.png" alt="The welcome banner in Konsole: a black-and-white NixOS logo beside the NixOS version and config version, then a table of common commands, a tip and links" width="820">
+<img src="docs/screenshots/welcome-banner-v52.png" alt="The welcome banner in Konsole: a black-and-white NixOS logo beside the NixOS version and config version, then a table of common commands, a tip and links" width="820">
 
 <sub>Rendered from the banner script in Konsole's colors; the generation
 number is an example.</sub>
@@ -843,7 +843,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v51** | BoxBuddy, a window for managing distrobox boxes (Nix package, next to distrobox). |
+| **v52** | Tidy-up: the welcome banner's `update` line names all its parts (system, Flatpak, Homebrew, Neovim, firmware). |
+| v51 | BoxBuddy, a window for managing distrobox boxes (Nix package, next to distrobox). |
 | v50 | The taskbar is docked to the bottom edge instead of floating. |
 | v49 | Neovim is now [LazyVim](https://www.lazyvim.org): config in `home/austin/nvim/` (linked as `~/.config/nvim`, plugin versions pinned in `lazy-lock.json`), tools from Nix, the Nix language extra, and `update` [n] for plugin updates. The previous telescope/treesitter setup is replaced. |
 | v48 | KDE apps: Filelight (what fills the disk) and KDE Partition Manager (format and label drives); new README section "KDE apps". |

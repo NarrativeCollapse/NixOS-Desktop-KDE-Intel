@@ -54,7 +54,7 @@ let
   motdTemplate = pkgs.writeText "motd.md" ''
     | Command | Description |
     | ------- | ----------- |
-    | `update` | Check for system, Flatpak and Homebrew updates; you choose what to apply |
+    | `update` | Check for system, Flatpak, Homebrew, Neovim and firmware updates; you choose what to apply |
     | `rebuild` | Apply changes from ~/nixos-config |
     | `nix search nixpkgs <name>` | Find a package |
     | `, <command>` | Run a command without installing it |
@@ -164,7 +164,7 @@ in
 
     # Bazzite's fish prompt shows a box inside containers; starship's
     # container module does the same (`$container` is in home.nix's format).
-    # It works in distrobox because of distrobox.conf below.
+    # It works in distrobox because of distrobox.conf above.
     starship.settings.container.symbol = "📦";
 
     # Typing an unknown command suggests the package that provides it, and
