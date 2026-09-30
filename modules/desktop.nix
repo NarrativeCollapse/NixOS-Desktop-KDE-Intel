@@ -4,6 +4,22 @@ let
   # Default wallpaper for the desktop, the lock screen and the login screen
   # (one of the images in wallpapers/).
   wallpaper = ../wallpapers/gas-masks.jpg;
+
+  # Installed with the KDE apps (see "KDE apps" below; a file can set
+  # environment.systemPackages only once):
+  wallpaperPackages = [
+    # Extra wallpapers: the images in wallpapers/ at the repo root, where
+    # Plasma's wallpaper picker lists them next to the stock ones. Add or
+    # remove an image there and rebuild.
+    (pkgs.runCommand "extra-wallpapers" { } ''
+      install -Dm644 -t $out/share/wallpapers ${../wallpapers}/*
+    '')
+    # Login screen (SDDM's Breeze theme) background.
+    (pkgs.writeTextDir "share/sddm/themes/breeze/theme.conf.user" ''
+      [General]
+      background=${wallpaper}
+    '')
+  ];
 in
 {
   ################################
@@ -34,19 +50,8 @@ in
   # affected, and nothing here uses them.
   programs.xwayland.defaultFontPath = "";
 
-  # Extra wallpapers: the images in wallpapers/ at the repo root, installed
-  # where Plasma's wallpaper picker lists them next to the stock ones. Add
-  # or remove an image there and rebuild.
-  environment.systemPackages = [
-    (pkgs.runCommand "extra-wallpapers" { } ''
-      install -Dm644 -t $out/share/wallpapers ${../wallpapers}/*
-    '')
-    # Login screen (SDDM's Breeze theme) background.
-    (pkgs.writeTextDir "share/sddm/themes/breeze/theme.conf.user" ''
-      [General]
-      background=${wallpaper}
-    '')
-  ];
+  # Extra wallpapers and the login screen background: `wallpaperPackages`
+  # at the top of this file.
   environment.pathsToLink = [ "/share/wallpapers" ];
 
   # Desktop and lock screen wallpaper (plasma-manager; see
@@ -118,8 +123,19 @@ in
   services.resolved.enable = true;
 
   ################################
-  # KDE / Plasma exclusions
+  # KDE apps: added and left out
   ################################
+
+  # Added on top of Plasma's own apps. Nix packages rather than Flatpaks:
+  # they use the Qt and Breeze already installed for Plasma (a Flatpak would
+  # need KDE's Flatpak runtime, several hundred MB) and update with the
+  # system. Add another as kdePackages.<name>.
+  environment.systemPackages =
+    wallpaperPackages
+    ++ (with pkgs.kdePackages; [
+      kcalc # calculator
+      isoimagewriter # writes ISO images to USB sticks
+    ]);
 
   # Plasma apps and services installed by default that nothing here uses.
   environment.plasma6.excludePackages = with pkgs.kdePackages; [
@@ -130,7 +146,7 @@ in
     qrca # QR code scanner
     plasma-keyboard # on-screen touch keyboard (the laptop has no touchscreen)
     qtvirtualkeyboard
-    # Discover, KDE's software center. Bazaar (a Flatpak, below) is the app
+    # Discover, KDE's software center. Bazaar (a Flatpak, above) is the app
     # store here; Discover would be a second one, and its update notifier
     # nags about updates that `update` handles. On NixOS it can't manage
     # system packages anyway, only Flatpaks and firmware.

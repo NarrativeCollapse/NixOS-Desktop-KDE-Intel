@@ -83,9 +83,9 @@ hosts/installer/
 modules/
   base.nix                       nix settings, nh + GC, locale, unfree allowlist
   hardware.nix                   boot, Plymouth splash, TRIM, graphics, zram, smartd, sysctls, firewall
-  desktop.nix                    Plasma 6/SDDM, PipeWire, Flatpak, Mullvad, fonts, lid
+  desktop.nix                    Plasma 6/SDDM, KDE apps, PipeWire, Flatpak, Mullvad, fonts, lid
   gaming.nix                     Steam, Proton-GE, gamescope, GameMode, xpadneo
-  shell.nix                      user, sudo, podman, system packages (incl. KDE apps), zsh
+  shell.nix                      user, sudo, podman, system packages, zsh
   backup.nix                     restic job for /home (needs one-time setup)
   homebrew.nix                   Homebrew PATH, completions, `brew-update`
   notify-failure.nix             desktop notification when a background job fails
@@ -519,11 +519,12 @@ services.flatpak.packages = [
   `uninstallUnmanaged = false` leaves apps you installed by hand (Bazaar,
   `flatpak install`) alone. Once every app you want is listed, set it to
   `true` to make the list authoritative; unlisted apps are then removed.
-- **KDE apps are Nix packages instead** (`modules/shell.nix`): KCalc and
-  ISO Image Writer. As Flatpaks they'd need KDE's Flatpak runtime (several
-  hundred MB, separate from Plasma's own libraries); as Nix packages they
-  use the Qt and Breeze Plasma already has, and update with the system
-  through `update` [s]. To add another KDE app, add `kdePackages.<name>` there (for example
+- **KDE apps are Nix packages instead** (`modules/desktop.nix`, next to
+  the Plasma apps left out): KCalc and ISO Image Writer. As Flatpaks
+  they'd need KDE's Flatpak runtime (several hundred MB, separate from
+  Plasma's own libraries); as Nix packages they use the Qt and Breeze
+  Plasma already has, and update with the system through `update` [s]. To
+  add another KDE app, add `kdePackages.<name>` there (for example
   `kdePackages.filelight`).
 - **Why Bazaar and not Discover:** Plasma normally installs Discover, its
   software center, but it's excluded here. Bazaar already covers browsing
