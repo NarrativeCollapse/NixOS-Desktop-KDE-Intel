@@ -18,6 +18,11 @@
     # flake.lock updates) instead of through ProtonUp-Qt.
     extraCompatPackages = [ pkgs.proton-ge-bin ];
   };
+  # Steam is unfree; allowed by name (see "Unfree packages" in base.nix).
+  my.unfreePackages = [
+    "steam"
+    "steam-unwrapped"
+  ];
 
   ################################
   # Xbox wireless controller (Bluetooth)
@@ -31,10 +36,28 @@
 
   programs.gamemode.enable = true;
 
-  # NOTE: MangoHud is installed per-user in home/austin/home.nix so the overlay
-  # config lives with the user. The `steam-hud` alias there wires it together.
-  # 32-bit vulkan/GL for Proton comes from hardware.graphics.enable32Bit
-  # (modules/hardware.nix) + pipewire alsa.support32Bit (modules/desktop.nix).
+  # MangoHud (FPS, frame time and temperature overlay), per-user so its
+  # config lives with the user, and `steam-hud`, which starts Steam with
+  # MangoHud and GameMode.
+  home-manager.users.austin = {
+    home.packages = [ pkgs.mangohud ];
+    programs.zsh.shellAliases.steam-hud = "MANGOHUD=1 gamemoderun steam";
+    xdg.configFile."MangoHud/MangoHud.conf".text = ''
+      fps
+      frametime
+      cpu_temp
+      gpu_temp
+      ram
+      vram
+      position=top-left
+      font_size=20
+      background_alpha=0.4
+      toggle_hud=Shift_R+F12
+    '';
+  };
+
+  # 32-bit Vulkan/GL for Proton comes from hardware.graphics.enable32Bit
+  # (hardware.nix) and PipeWire's alsa.support32Bit (desktop.nix).
 
   ################################
   # Optional extras (off by default)

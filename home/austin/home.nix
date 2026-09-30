@@ -43,11 +43,9 @@
       extended = true;
     };
 
-    # ls/ll/la come from programs.eza in bling.nix.
+    # ls/ll/la come from programs.eza in bling.nix; steam-hud from
+    # modules/gaming.nix.
     shellAliases = {
-      # Gaming helper: MangoHud overlay + GameMode wrapping Steam.
-      steam-hud = "MANGOHUD=1 gamemoderun steam";
-
       # Rebuild from the config checkout (nh's flake path, modules/base.nix).
       # `nh os switch` does the same with a package diff.
       rebuild = "sudo nixos-rebuild switch --flake ${osConfig.programs.nh.flake}#${osConfig.networking.hostName}";
@@ -173,24 +171,10 @@
 
   # jq comes from Homebrew (see /Brewfile). For a process monitor, Plasma's
   # System Monitor (Ctrl+Esc for its process list) is built in.
+  # MangoHud and its config are in modules/gaming.nix, with Steam.
   home.packages = with pkgs; [
-    mangohud
     wl-clipboard # Wayland clipboard backend for nvim's clipboard=unnamedplus
   ];
-
-  # MangoHud overlay config (per-user, pairs with the steam-hud alias).
-  xdg.configFile."MangoHud/MangoHud.conf".text = ''
-    fps
-    frametime
-    cpu_temp
-    gpu_temp
-    ram
-    vram
-    position=top-left
-    font_size=20
-    background_alpha=0.4
-    toggle_hud=Shift_R+F12
-  '';
 
   home.sessionVariables.PAGER = "less";
 }

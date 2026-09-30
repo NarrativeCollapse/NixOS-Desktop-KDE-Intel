@@ -82,20 +82,20 @@ hosts/shitbox/
 hosts/installer/
   configuration.nix              the installer ISO: live Plasma + `install-shitbox`
 modules/
-  base.nix                       nix settings, nh + GC, locale, unfree allowlist
+  base.nix                       nix settings, nh + GC, locale, unfree packages option
   hardware.nix                   boot, Plymouth splash, zram + oomd, power, lid, firmware,
                                  disk health, graphics, Bluetooth
   network.nix                    NetworkManager, resolved, Mullvad, mDNS, firewall,
                                  network hardening
   desktop.nix                    Plasma 6/SDDM, wallpapers, apps (KDE + LibreWolf),
                                  Flatpak, PipeWire, fonts, printing
-  gaming.nix                     Steam, Proton-GE, gamescope, GameMode, xpadneo
+  gaming.nix                     Steam, Proton-GE, gamescope, GameMode, MangoHud, xpadneo
   users.nix                      user, sudo, zsh, podman, command-line system packages
   backup.nix                     restic job for /home (needs one-time setup)
   homebrew.nix                   Homebrew PATH, completions, `brew-update`
   notifications.nix              `notify-desktop` + `notify-failure@`: desktop alerts from services
   updates.nix                    `update` menu: system, Flatpak and Homebrew updates
-home/austin/home.nix             zsh, starship, git, neovim, mangohud
+home/austin/home.nix             zsh, starship, git, neovim
 home/austin/bling.nix            Bazzite-style MOTD, fastfetch, CLI tools + aliases
 home/austin/plasma.nix           Plasma/KDE settings via plasma-manager (Konsole profile)
 ```
@@ -363,8 +363,10 @@ wrong somewhere:
    hosts/shitbox/hardware-configuration.nix`) on a different machine or disk
    layout. TRIM on the encrypted disk follows whatever LUKS device it names,
    so nothing else needs updating. The installer ISO does this for you.
-4. **Unfree allowlist** in `modules/base.nix`: add a package's name there
-   before installing anything proprietary.
+4. **Unfree packages**: a proprietary package only builds once its name is
+   in `my.unfreePackages`. Add it in the module that installs the package,
+   the way `modules/gaming.nix` lists `steam` (the option itself is in
+   `modules/base.nix`).
 5. **Steam Remote Play** opens firewall ports on every network. Set
    `remotePlay.openFirewall = false` in `modules/gaming.nix` if you don't
    stream games.
