@@ -24,7 +24,8 @@ jobs:
       # Frees disk space and installs Nix.
       - uses: ./.github/actions/setup-nix
 
-      # Format, statix, deadnix, README version, and evaluation of the system.
+      # Format, statix, deadnix, README version, evaluation of the system, and
+      # the VM boot test (tests/boot.nix; install-nix-action enables KVM).
       - name: nix flake check
         run: nix flake check --print-build-logs
 

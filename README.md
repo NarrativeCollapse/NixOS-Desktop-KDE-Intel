@@ -72,7 +72,7 @@ CLAUDE.md                        rules for AI-assisted changes (checks, versioni
 docs/screenshots/                images used in this README
 .github/actions/setup-nix/       CI setup shared by the workflows (disk space + Nix)
 .github/workflows/
-  check.yml                      CI: nix flake check + full system build
+  check.yml                      CI: nix flake check (incl. VM boot test) + full system build
   iso.yml                        test-builds the installer ISO (run by hand)
   update-flake-lock.yml          flake.lock update pull request (run by hand)
 hosts/shitbox/
@@ -97,6 +97,7 @@ modules/
 home/austin/home.nix             zsh, starship, git, neovim
 home/austin/bling.nix            Bazzite-style MOTD, fastfetch, CLI tools + aliases
 home/austin/plasma.nix           Plasma/KDE settings via plasma-manager (Konsole profile)
+tests/boot.nix                   VM boot test, run by `nix flake check` and CI
 scripts/                         the longer shell scripts, as plain bash (see below)
   update.sh, update-system.sh    the `update` menu and its [s] System part
   backup-setup.sh, backup-test.sh
@@ -124,8 +125,9 @@ every script. Shorter scripts stay inline in their module.
 git clone https://github.com/NarrativeCollapse/NixOS-Desktop-KDE-Intel.git ~/nixos-config
 cd ~/nixos-config
 
-# Format, lint, and evaluate the whole system.
-nix flake check
+# Evaluate the whole system (`nix flake check` without --no-build also
+# formats, lints and boot-tests it in a VM, which takes a few minutes).
+nix flake check --no-build
 
 sudo nixos-rebuild switch --flake .#shitbox
 ```
@@ -209,7 +211,7 @@ Then restore your files from the backup drive (see [Backups](#backups)).
 | Update the system, Flatpaks or Homebrew tools | `update`, then pick (see [Updates](#updates)) |
 | Roll back a bad rebuild | `sudo nixos-rebuild switch --rollback`, or pick an older entry in the boot menu |
 | Format the tree | `nix fmt` |
-| Lint + evaluate | `nix flake check` |
+| Lint, evaluate and boot-test in a VM | `nix flake check` (a few minutes; see below) |
 | Steam with MangoHud + GameMode | `steam-hud` (toggle the overlay with Right Shift + F12) |
 | Run a game with Proton-GE | In Steam: right-click the game → Properties → Compatibility → tick "Force the use of…" → pick **GE-Proton** |
 | See boot messages behind the splash | Press **Esc** during boot |
@@ -218,10 +220,22 @@ Then restore your files from the backup drive (see [Backups](#backups)).
 | Which config version is running? | Shown in the welcome banner, `fastfetch`, and the boot menu entry (e.g. `v25-26.05…`) |
 
 `nix flake check` fails on unformatted files, statix/deadnix findings, a
-README whose "Current version" doesn't match `version` in `flake.nix`, or a
-configuration that doesn't evaluate. `hosts/shitbox/hardware-configuration.nix`
-is exempt from formatting and linting because regenerating it would undo any
-changes.
+README whose "Current version" doesn't match `version` in `flake.nix`, a
+configuration that doesn't evaluate, or a failed boot test.
+`hosts/shitbox/hardware-configuration.nix` is exempt from formatting and
+linting because regenerating it would undo any changes.
+
+**The boot test** (`tests/boot.nix`) starts this exact configuration in a
+QEMU VM and checks that it reaches the desktop: NetworkManager, DNS,
+Mullvad, mDNS, oomd, the backup timer and Home Manager are running,
+Plasma logs in for austin, the taskbar script has run, and `update`,
+`nixos-motd` and the other commands work, with the right version label.
+Only the VM's differences are overridden (no encrypted disk, automatic
+login, 4 GB of memory). Things a VM can't have aren't tested: Wi-Fi,
+Bluetooth, SMART disk data, firmware updates and anything needing the
+internet. Run it alone with `nix build .#checks.x86_64-linux.boot -L`, or
+watch the VM with `nix run .#checks.x86_64-linux.boot.driverInteractive`
+(then `start_all()` at its prompt).
 
 In Neovim the leader key is Space: `<Space>ff` finds files, `<Space>fg`
 searches text, `<Space>fb` lists open buffers.
@@ -682,8 +696,10 @@ the full report any time.
 Three GitHub Actions workflows live in `.github/workflows/`:
 
 - **Check** (every push to `main` and every pull request): runs
-  `nix flake check` and builds the whole system, so a package that fails to
-  build shows up on GitHub before you rebuild the laptop. Results are on the
+  `nix flake check`, which includes booting the system in a VM (the boot
+  test above), and builds the whole system, so a package that fails to
+  build, or a change that builds but doesn't boot, shows up on GitHub
+  before you rebuild the laptop. Results are on the
   repository's Actions tab. A newer push cancels an older run still in
   progress.
 - **Build installer ISO** (only when run by hand from the Actions tab):

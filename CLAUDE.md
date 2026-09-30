@@ -6,8 +6,9 @@ README.md for layout and usage.
 ## Before every commit
 
 Run `nix fmt` and `nix flake check`; both must pass with no evaluation
-warnings. CI (`.github/workflows/check.yml`) runs the same check plus a full
-system build on every push.
+warnings. `nix flake check` includes the VM boot test (`tests/boot.nix`,
+needs KVM, a few minutes). CI (`.github/workflows/check.yml`) runs the same
+check plus a full system build on every push.
 
 ## Versioning (keep this up to date)
 

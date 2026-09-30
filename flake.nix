@@ -65,6 +65,43 @@
       formatter = pkgs.nixfmt-tree.override {
         settings.global.excludes = [ generated ];
       };
+
+      # Everything shitbox is built from; shared by nixosConfigurations.shitbox
+      # and the VM boot test (tests/boot.nix).
+      shitboxModules = [
+        ./hosts/shitbox/configuration.nix
+
+        # Git commit the system was built from (with -dirty for uncommitted
+        # changes); shown by `nixos-version --configuration-revision`.
+        # The config version is added to the system label, so it shows in
+        # the boot menu and the system's store path (and thus in the MOTD
+        # and fastfetch; see home/austin/bling.nix).
+        {
+          system.configurationRevision = self.rev or self.dirtyRev or null;
+          system.nixos.tags = [ version ];
+        }
+
+        nix-flatpak.nixosModules.nix-flatpak
+
+        home-manager.nixosModules.home-manager
+        {
+          home-manager = {
+            useGlobalPkgs = true;
+            useUserPackages = true;
+            sharedModules = [
+              plasma-manager.homeModules.plasma-manager
+              nix-index-database.homeModules.nix-index
+            ];
+            users.austin = import ./home/austin/home.nix;
+            # When HM would clobber an unmanaged dotfile, move it to
+            # <file>.hm-bak instead of failing activation. The name is
+            # fixed, so overwriteBackup replaces an older .hm-bak rather
+            # than failing the second time.
+            backupFileExtension = "hm-bak";
+            overwriteBackup = true;
+          };
+        }
+      ];
     in
     {
       # `nix fmt` formats the whole tree.
@@ -93,6 +130,17 @@
             || { echo "README.md 'Current version' doesn't say ${version}" >&2; exit 1; }
           touch $out
         '';
+
+        # Boots the system in a VM and checks that it works (tests/boot.nix).
+        boot = lib.nixos.runTest {
+          hostPkgs = pkgs;
+          imports = [
+            (import ./tests/boot.nix {
+              modules = shitboxModules;
+              inherit version;
+            })
+          ];
+        };
       };
 
       # The installer ISO (hosts/installer/configuration.nix):
@@ -110,41 +158,7 @@
 
       nixosConfigurations.shitbox = lib.nixosSystem {
         inherit system;
-
-        modules = [
-          ./hosts/shitbox/configuration.nix
-
-          # Git commit the system was built from (with -dirty for uncommitted
-          # changes); shown by `nixos-version --configuration-revision`.
-          # The config version is added to the system label, so it shows in
-          # the boot menu and the system's store path (and thus in the MOTD
-          # and fastfetch; see home/austin/bling.nix).
-          {
-            system.configurationRevision = self.rev or self.dirtyRev or null;
-            system.nixos.tags = [ version ];
-          }
-
-          nix-flatpak.nixosModules.nix-flatpak
-
-          home-manager.nixosModules.home-manager
-          {
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              sharedModules = [
-                plasma-manager.homeModules.plasma-manager
-                nix-index-database.homeModules.nix-index
-              ];
-              users.austin = import ./home/austin/home.nix;
-              # When HM would clobber an unmanaged dotfile, move it to
-              # <file>.hm-bak instead of failing activation. The name is
-              # fixed, so overwriteBackup replaces an older .hm-bak rather
-              # than failing the second time.
-              backupFileExtension = "hm-bak";
-              overwriteBackup = true;
-            };
-          }
-        ];
+        modules = shitboxModules;
       };
 
       # Live Plasma USB that installs the shitbox config above (see
