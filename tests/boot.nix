@@ -29,6 +29,9 @@
         };
         defaultSession = "plasma";
       };
+      # - The test framework reads the kernel's console messages, so it
+      #   needs the full log level instead of the quiet boot (hardware.nix).
+      boot.consoleLogLevel = lib.mkForce 7;
       # - Enough memory and CPU for Plasma.
       virtualisation = {
         memorySize = 4096;
