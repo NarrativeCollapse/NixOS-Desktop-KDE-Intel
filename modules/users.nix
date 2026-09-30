@@ -55,10 +55,10 @@
     # features, since all it does is drive distrobox and podman here.
     boxbuddy
 
-    # Essentials (git system-wide so root can rebuild from the flake). Other
-    # command-line tools are in Home Manager and the Brewfile.
+    # git system-wide so root can rebuild from the flake. (curl, coreutils
+    # and the like come with NixOS itself.) Other command-line tools are in
+    # Home Manager and the Brewfile.
     git
-    curl
   ];
 
   ################################
