@@ -49,6 +49,13 @@
     # Browser
     librewolf
 
+    # KDE apps on top of Plasma's own. Nix packages rather than Flatpaks:
+    # they use the Qt and Breeze already installed for Plasma (a Flatpak
+    # would download a separate KDE runtime of several hundred MB) and
+    # update with the system.
+    kdePackages.kcalc # calculator
+    kdePackages.isoimagewriter # writes ISO images to USB sticks
+
     # Containers
     podman-compose
     distrobox

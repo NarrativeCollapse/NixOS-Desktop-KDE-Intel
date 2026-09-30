@@ -3,7 +3,7 @@
 # Build it on any machine with Nix (the laptop itself works):
 #   nix build ~/nixos-config#installer-iso
 # The ISO lands in ./result/iso/. Write it to a USB stick with ISO Image
-# Writer (a Flatpak on shitbox) or any "DD mode" USB writer.
+# Writer (installed on shitbox) or any "DD mode" USB writer.
 #
 # Booting it gives a live Plasma session (no password). Connect to Wi-Fi
 # from the panel, then double-click "Install shitbox" on the desktop, or run

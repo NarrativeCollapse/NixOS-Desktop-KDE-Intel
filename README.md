@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v46** (git tag `v46`). See [Versions](#versions).
+**Current version: v47** (git tag `v47`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v43.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -18,9 +18,10 @@ taskbar icons, tray and exact layout may differ.</sub>
 
 - **Desktop:** Plasma 6 on SDDM, Wayland only (X11 apps run through
   Xwayland), in Breeze Dark; PipeWire; declarative Flatpak apps from Flathub
-  (Chrome, VLC, Flatseal, qBittorrent, ISO Image Writer, Bazaar);
-  Plasma/Konsole settings in the config (plasma-manager); extra wallpapers
-  built into the system, with one set on the desktop, lock and login
+  (Chrome, VLC, Flatseal, qBittorrent, Bazaar); KCalc and KDE ISO Image
+  Writer added to Plasma's own apps (as Nix packages); Plasma/Konsole
+  settings in the config (plasma-manager); extra wallpapers built into the
+  system, with one set on the desktop, lock and login
   screens; Bluetooth via Plasma's BlueDevil; printing with automatic
   network-printer discovery (Avahi/mDNS); Noto + JetBrains Mono Nerd Font;
   24-hour time throughout.
@@ -84,7 +85,7 @@ modules/
   hardware.nix                   boot, Plymouth splash, TRIM, graphics, zram, smartd, sysctls, firewall
   desktop.nix                    Plasma 6/SDDM, PipeWire, Flatpak, Mullvad, fonts, lid
   gaming.nix                     Steam, Proton-GE, gamescope, GameMode, xpadneo
-  shell.nix                      user, sudo, podman, system packages, zsh
+  shell.nix                      user, sudo, podman, system packages (incl. KDE apps), zsh
   backup.nix                     restic job for /home (needs one-time setup)
   homebrew.nix                   Homebrew PATH, completions, `brew-update`
   notify-failure.nix             desktop notification when a background job fails
@@ -125,9 +126,9 @@ this exact config on a fresh (or the same) laptop.
   ls result/iso/        # shitbox-installer-vN.iso, about 3 GB
   ```
 
-Write it to a USB stick (8 GB or more) with **ISO Image Writer** (installed
-as a Flatpak) or any "DD mode" USB writer, then boot from it (F9 for the boot
-menu on HP laptops).
+Write it to a USB stick (8 GB or more) with **ISO Image Writer** (in the
+app menu on shitbox) or any "DD mode" USB writer, then boot from it (F9 for
+the boot menu on HP laptops).
 
 **What's on it:**
 
@@ -512,10 +513,18 @@ services.flatpak.packages = [
 - Nothing updates automatically: `update` ([f]) runs `flatpak update` for
   listed and hand-installed apps alike, and asks first.
 - Listed now: Google Chrome, VLC, Flatseal (manages Flatpak app
-  permissions), qBittorrent, KDE ISO Image Writer (writes ISO images to
-  USB sticks) and Bazaar (a Flathub app store, as on Bazzite and Bluefin).
+  permissions), qBittorrent and Bazaar (a Flathub app store, as on Bazzite
+  and Bluefin).
+- Removing an app from the list uninstalls it at the next rebuild.
   `uninstallUnmanaged = false` leaves apps you installed by hand (Bazaar,
-  `flatpak install`) alone.
+  `flatpak install`) alone. Once every app you want is listed, set it to
+  `true` to make the list authoritative; unlisted apps are then removed.
+- **KDE apps are Nix packages instead** (`modules/shell.nix`): KCalc and
+  ISO Image Writer. As Flatpaks they'd need KDE's Flatpak runtime (several
+  hundred MB, separate from Plasma's own libraries); as Nix packages they
+  use the Qt and Breeze Plasma already has, and update with the system
+  through `update` [s]. To add another KDE app, add `kdePackages.<name>` there (for example
+  `kdePackages.filelight`).
 - **Why Bazaar and not Discover:** Plasma normally installs Discover, its
   software center, but it's excluded here. Bazaar already covers browsing
   and installing Flathub apps, so Discover would be a second app store.
@@ -524,9 +533,7 @@ services.flatpak.packages = [
   its background update notifier would keep announcing updates, which goes
   against updating only when you choose. Removing it frees about 23 MB.
   To bring it back, delete `discover` from `environment.plasma6.excludePackages`
-  in `modules/desktop.nix`. Once every app you
-  want is listed, set it to `true` to make the list authoritative; unlisted
-  apps are then removed.
+  in `modules/desktop.nix`.
 - List what's installed now, to copy into the config:
   `flatpak list --app --columns=application`.
 
@@ -692,7 +699,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v46** | Stability: desktop warnings when the SSD reports health problems (smartd, and a `disk-health` command); `update` [s] can apply an update at the next restart instead of switching the running desktop; plasma-manager pinned to a commit so `update` can't change desktop behavior. |
+| **v47** | KCalc (calculator) and KDE ISO Image Writer as Nix packages; ISO Image Writer's Flatpak is removed (uninstalled at the first rebuild). |
+| v46 | Stability: desktop warnings when the SSD reports health problems (smartd, and a `disk-health` command); `update` [s] can apply an update at the next restart instead of switching the running desktop; plasma-manager pinned to a commit so `update` can't change desktop behavior. |
 | v45 | Fix: v44 didn't evaluate (the TRIM-on-LUKS lookup passed the hardware configuration too few arguments). The repository is public, so the installer clones the latest config without a login and CI offers the ISO as a download. |
 | v44 | Installer ISO (`nix build .#installer-iso`): live Plasma with panel Wi-Fi that works, and `install-shitbox`, which erases a chosen disk, sets up LUKS and installs this config. TRIM on the encrypted disk now follows `hardware-configuration.nix`, so a reinstall's new disk UUID needs no edits. |
 | v43 | Taskbar clock date in military style, day month year (`05 Oct 2026`); README screenshot updated. |
