@@ -81,7 +81,11 @@
         assert "Usage: update" in usage, usage
         motd = machine.succeed("su - austin -c nixos-motd")
         assert "Welcome to NixOS" in motd, motd
-        machine.succeed("su - austin -c nixos-system-info | grep -q -- '${version}'")
+        # The config version (${version}) is in the running system's name, which
+        # the MOTD and fastfetch show through nixos-system-info.
+        info = machine.succeed("su - austin -c nixos-system-info")
+        system = machine.succeed("readlink /run/current-system")
+        assert "${version}" in info, f"nixos-system-info: {info!r}, system: {system!r}"
 
     # Anything else that failed in the VM, for the log (not a test failure:
     # see the list above).
