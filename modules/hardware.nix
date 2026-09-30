@@ -1,5 +1,19 @@
 { pkgs, ... }:
 
+let
+  # smartd's alert: a desktop notification in austin's session (the same
+  # route as notify-failure.nix; skipped if austin isn't logged in, but the
+  # warning repeats daily and is in `journalctl -u smartd`).
+  smartdNotify = pkgs.writeShellScript "smartd-notify" ''
+    bus=/run/user/$(${pkgs.coreutils}/bin/id -u austin)/bus
+    [ -S "$bus" ] || exit 0
+    ${pkgs.util-linux}/bin/runuser -u austin -- \
+      ${pkgs.coreutils}/bin/env DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" \
+      ${pkgs.libnotify}/bin/notify-send --urgency=critical --app-name=smartd \
+      --icon=drive-harddisk "Disk problem: $SMARTD_DEVICESTRING" \
+      "$SMARTD_MESSAGE. Check your backups; details: disk-health"
+  '';
+in
 {
   ################################
   # Boot loader
@@ -82,6 +96,31 @@
 
   services.fwupd.enable = true;
   hardware.enableRedistributableFirmware = true;
+
+  # Disk health: smartd reads the SSD's own health counters (spare blocks,
+  # wear, media errors, temperature) every 30 minutes and warns on the
+  # desktop when one crosses its limit, again each day until it's fixed.
+  # A drive usually reports trouble like this weeks before it fails.
+  # `disk-health` shows the full report.
+  services.smartd = {
+    enable = true;
+    # The module's own alerts are terminal `wall` messages and X11 pop-ups;
+    # smartdNotify (top of this file) sends a desktop notification instead.
+    notifications.wall.enable = false;
+    defaults.monitored = "-a -m <nomailer> -M daily -M exec ${smartdNotify}";
+  };
+  environment.systemPackages = [
+    (pkgs.writeShellApplication {
+      name = "disk-health";
+      text = ''
+        # Every disk smartctl finds: overall verdict plus the health counters.
+        # (smartctl's exit code flags even minor log entries; keep going.)
+        sudo ${pkgs.smartmontools}/sbin/smartctl --scan | while read -r dev _ type _; do
+          sudo ${pkgs.smartmontools}/sbin/smartctl -H -A -d "$type" "$dev" || true
+        done
+      '';
+    })
+  ];
 
   ################################
   # Graphics

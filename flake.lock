@@ -93,6 +93,7 @@
       "original": {
         "owner": "nix-community",
         "repo": "plasma-manager",
+        "rev": "a19a2a029fa180911bd89c554dca1616e10f4c1d",
         "type": "github"
       }
     },

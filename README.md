@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v45** (git tag `v45`). See [Versions](#versions).
+**Current version: v46** (git tag `v46`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v43.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -34,7 +34,8 @@ taskbar icons, tray and exact layout may differ.</sub>
   systemd initrd, LUKS with TRIM passed through to the SSD, zram swap with the
   kernel tuned for it (as on Fedora and Pop!_OS), systemd-oomd closing a
   runaway app before memory pressure freezes the desktop,
-  power-profiles-daemon + thermald, fwupd, and Intel VA-API/QSV drivers so
+  power-profiles-daemon + thermald, fwupd, smartd watching the SSD's health
+  (see [Failure alerts](#failure-alerts)), and Intel VA-API/QSV drivers so
   video decodes on the GPU. Closing the lid suspends on battery and does
   nothing on AC.
 - **Network & security:** NetworkManager with systemd-resolved, Mullvad VPN
@@ -80,7 +81,7 @@ hosts/installer/
   configuration.nix              the installer ISO: live Plasma + `install-shitbox`
 modules/
   base.nix                       nix settings, nh + GC, locale, unfree allowlist
-  hardware.nix                   boot, Plymouth splash, TRIM, graphics, zram, sysctls, firewall
+  hardware.nix                   boot, Plymouth splash, TRIM, graphics, zram, smartd, sysctls, firewall
   desktop.nix                    Plasma 6/SDDM, PipeWire, Flatpak, Mullvad, fonts, lid
   gaming.nix                     Steam, Proton-GE, gamescope, GameMode, xpadneo
   shell.nix                      user, sudo, podman, system packages, zsh
@@ -189,6 +190,7 @@ Then restore your files from the backup drive (see [Backups](#backups)).
 | Steam with MangoHud + GameMode | `steam-hud` (toggle the overlay with Right Shift + F12) |
 | Run a game with Proton-GE | In Steam: right-click the game → Properties → Compatibility → tick "Force the use of…" → pick **GE-Proton** |
 | See boot messages behind the splash | Press **Esc** during boot |
+| Check the SSD's health | `disk-health` (sudo password) |
 | Which commit is running? | `nixos-version --configuration-revision` |
 | Which config version is running? | Shown in the welcome banner, `fastfetch`, and the boot menu entry (e.g. `v25-26.05…`) |
 
@@ -221,13 +223,24 @@ changes anything.
      and a Versions row naming the updated inputs) and commits it locally.
   4. Builds the new system without activating it, and lists every package
      whose version changes, plus the change in total size (`nvd`).
-  5. Asks **Apply vN now?** On yes it switches to the new system (sudo
-     password), tags the commit `vN`, and pushes the commit and tag to
-     GitHub. On no, or if the build fails, the commit is undone and the
-     repo is exactly as it was.
+  5. Asks how to apply it (sudo password for the first two):
+     - **[n] Now** switches the running system over.
+     - **[r] At the next restart** installs it as the default boot entry
+       but leaves the running desktop alone, so the new version starts
+       fresh. Use it for big updates (a new Plasma or NixOS release), where
+       switching a running session can leave apps misbehaving until you
+       log out. Until the restart, `update` [s] says a version is waiting.
+     - **[s] Skip**: the commit is undone and the repo is exactly as it
+       was (the same happens if the build fails).
+
+     After [n] or [r] it tags the commit `vN` and pushes the commit and tag
+     to GitHub.
 
   If pushing fails (for example, no GitHub login on the laptop), the update
   is still applied, and it prints the two commands to push later.
+
+  plasma-manager is the one input `update` doesn't move: it's pinned to a
+  commit (see [Plasma settings](#plasma-settings)).
 - **[f] Flatpak** runs `flatpak update`, which lists pending updates and
   asks before installing them. System-wide apps may ask for your password.
 - **[w] Firmware** (`update-firmware`) asks fwupd for BIOS and device
@@ -539,6 +552,14 @@ wallpaper you pick by hand in System Settings stays until then.
 writes the settings declared there; anything else you change in System
 Settings is left alone.
 
+plasma-manager has no stable release branch, so `flake.nix` pins it to one
+commit instead of following its latest code: `update` never changes it, and
+a change there can't alter your desktop behind your back. To move it on
+(for example, when a new NixOS release needs a newer one), replace the
+commit in its `url` in `flake.nix` with a newer one from
+[its commit list](https://github.com/nix-community/plasma-manager/commits),
+then `rebuild`.
+
 What it sets now:
 
 - **Breeze Dark**: the dark color scheme for apps and windows and the dark
@@ -598,6 +619,15 @@ jobs use to raise a critical desktop notification when they fail, with the
   you're logged in)
 
 To attach it to another service: `onFailure = [ "notify-failure@%n.service" ];`.
+
+**Disk health** (`services.smartd` in `modules/hardware.nix`): smartd reads
+the SSD's own health counters (spare blocks, wear, media errors,
+temperature) every 30 minutes. If one crosses the limit the drive itself
+sets, a critical notification says which disk and what's wrong, and it
+repeats daily until fixed (also in `journalctl -u smartd`). Drives usually
+report trouble like this weeks before they fail, so treat it as: make sure
+the backup is current, then plan to replace the drive. `disk-health` shows
+the full report any time.
 
 ## CI
 
@@ -662,7 +692,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v45** | Fix: v44 didn't evaluate (the TRIM-on-LUKS lookup passed the hardware configuration too few arguments). The repository is public, so the installer clones the latest config without a login and CI offers the ISO as a download. |
+| **v46** | Stability: desktop warnings when the SSD reports health problems (smartd, and a `disk-health` command); `update` [s] can apply an update at the next restart instead of switching the running desktop; plasma-manager pinned to a commit so `update` can't change desktop behavior. |
+| v45 | Fix: v44 didn't evaluate (the TRIM-on-LUKS lookup passed the hardware configuration too few arguments). The repository is public, so the installer clones the latest config without a login and CI offers the ISO as a download. |
 | v44 | Installer ISO (`nix build .#installer-iso`): live Plasma with panel Wi-Fi that works, and `install-shitbox`, which erases a chosen disk, sets up LUKS and installs this config. TRIM on the encrypted disk now follows `hardware-configuration.nix`, so a reinstall's new disk UUID needs no edits. |
 | v43 | Taskbar clock date in military style, day month year (`05 Oct 2026`); README screenshot updated. |
 | v42 | Taskbar: System Settings unpinned, and the app launcher shows the white NixOS snowflake; README screenshot updated. |

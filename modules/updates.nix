@@ -16,9 +16,10 @@ let
   '';
 
   # [s] System: update flake.lock on this laptop, build the result, show
-  # which packages change, and switch to it only after a yes. On yes the
-  # new config version is committed, tagged and pushed; on no (or a failed
-  # build) the repo is put back exactly as it was.
+  # which packages change, then apply it now, at the next restart, or not at
+  # all. Once applied (or set for the restart) the new config version is
+  # committed, tagged and pushed; on skip (or a failed build) the repo is put
+  # back exactly as it was.
   updateSystem = pkgs.writeShellApplication {
     name = "update-system";
     runtimeInputs = with pkgs; [
@@ -28,7 +29,6 @@ let
       python3
     ];
     text = ''
-      ${confirm}
       cd ${flake}
       files=(flake.lock flake.nix README.md)
 
@@ -50,7 +50,9 @@ let
       nix flake update 2>&1 | tee "$log"
       if git diff --quiet -- flake.lock; then
         echo "No updates: every input is already at its newest version."
-        if [ "$(nixos-version --configuration-revision 2>/dev/null || true)" != "$(git rev-parse HEAD)" ]; then
+        if [ "$(readlink -f /nix/var/nix/profiles/system)" != "$(readlink -f /run/current-system)" ]; then
+          echo "(A newer version is waiting to start at the next restart.)"
+        elif [ "$(nixos-version --configuration-revision 2>/dev/null || true)" != "$(git rev-parse HEAD)" ]; then
           echo "(The running system isn't built from the latest config commit; \`rebuild\` applies it.)"
         fi
         exit 0
@@ -77,21 +79,39 @@ let
       echo "What $version changes compared to the running system:"
       nvd diff /run/current-system "$new"
       echo
-      if ! confirm "Apply $version now?"; then
-        undo
-        echo "Not applied. flake.lock is back where it was."
-        exit 0
-      fi
+      # "Now" switches the running desktop over; for big updates (Plasma, a
+      # new NixOS release) apps can misbehave until the next login, so
+      # "at the next restart" starts the new version fresh instead.
+      echo "Apply $version:"
+      echo "  [n] Now"
+      echo "  [r] At the next restart (safer for big updates, e.g. Plasma)"
+      echo "  [s] Skip"
+      read -r -n 1 -p "Choose: " how
+      echo
+      case $how in
+        n | N) mode=switch ;;
+        r | R) mode=boot ;;
+        *)
+          undo
+          echo "Not applied. flake.lock is back where it was."
+          exit 0
+          ;;
+      esac
 
-      if ! sudo nixos-rebuild switch --flake "${flake}#shitbox"; then
-        echo "Switching failed. The $version commit is kept locally (not pushed)."
+      if ! sudo nixos-rebuild "$mode" --flake "${flake}#shitbox"; then
+        echo "Applying failed. The $version commit is kept locally (not pushed)."
         exit 1
+      fi
+      if [ "$mode" = boot ]; then
+        done_msg="$version starts at the next restart"
+      else
+        done_msg="$version is applied"
       fi
       git tag -a "$version" -m "Config $version"
       if git push --quiet && git push --quiet origin "$version"; then
-        echo "$version is applied, and pushed to GitHub with its tag."
+        echo "$done_msg, and pushed to GitHub with its tag."
       else
-        echo "$version is applied, but pushing failed. Later, run:"
+        echo "$done_msg, but pushing failed. Later, run:"
         echo "  cd ${flake} && git push && git push origin $version"
       fi
     '';
