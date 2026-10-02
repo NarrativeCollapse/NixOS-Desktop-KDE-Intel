@@ -47,6 +47,7 @@ echo
 echo "EVERYTHING on $disk will be erased:"
 lsblk -po NAME,SIZE,FSTYPE,LABEL "$disk"
 read -r -p "Type the disk name ($disk) again to erase it: " again
+[[ $again == /dev/* ]] || again="/dev/$again"
 if [ "$again" != "$disk" ]; then
   echo "Stopped; nothing was changed."
   exit 1
@@ -70,6 +71,12 @@ done
 
 step "4. Partitioning and encrypting $disk"
 umount -R /mnt 2>/dev/null || true
+# Lock any encrypted volume an earlier, interrupted run left unlocked on
+# this disk: otherwise the kernel keeps the old partitions in use and
+# formatting fails with "device in use".
+lsblk -lnpo NAME,TYPE "$disk" | awk '$2 == "crypt" { print $1 }' | while read -r dev; do
+  cryptsetup close "$dev" || true
+done
 wipefs -af "$disk"
 sgdisk --zap-all "$disk"
 sgdisk -n1:1MiB:+1GiB -t1:ef00 -c1:BOOT -n2:0:0 -t2:8309 -c2:cryptroot "$disk"

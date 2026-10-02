@@ -51,7 +51,7 @@ jobs:
         run: |
           {
             echo 'body<<EOF'
-            echo "Weekly \`nix flake update\`, as ${{ steps.bump.outputs.version }}. \`nix flake check\` and a full system build passed on the updated lock."
+            echo "\`nix flake update\`, as ${{ steps.bump.outputs.version }}. \`nix flake check\` and a full system build passed on the updated lock."
             echo
             echo '```'
             grep -E "Updated input|→|'github:" update.log

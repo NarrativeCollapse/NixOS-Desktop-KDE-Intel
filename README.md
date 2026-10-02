@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v53** (git tag `v53`). See [Versions](#versions).
+**Current version: v54** (git tag `v54`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -279,7 +279,9 @@ changes anything.
        switching a running session can leave apps misbehaving until you
        log out. Until the restart, `update` [s] says a version is waiting.
      - **[s] Skip**: the commit is undone and the repo is exactly as it
-       was (the same happens if the build fails).
+       was. The same happens if anything fails or is interrupted (Ctrl+C)
+       before the update is applied, so a failed `update` never leaves
+       `flake.lock` half-changed.
 
      After [n] or [r] it tags the commit `vN` and pushes the commit and tag
      to GitHub.
@@ -846,7 +848,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v53** | sudo is now sudo-rs (memory-safe Rust rewrite; same `sudo` command, 15-minute password memory kept). |
+| **v54** | Fixes: `update` [s] puts the repo back after any failure or Ctrl+C before applying (it could leave `flake.lock` modified, blocking the next run); the installer can be re-run after an interrupted attempt (it left the encrypted disk unlocked, so formatting failed with "device in use") and accepts the disk name with or without `/dev/` when confirming. |
+| v53 | sudo is now sudo-rs (memory-safe Rust rewrite; same `sudo` command, 15-minute password memory kept). |
 | v52 | Tidy-up: the welcome banner's `update` line names all its parts (system, Flatpak, Homebrew, Neovim, firmware). |
 | v51 | BoxBuddy, a window for managing distrobox boxes (Nix package, next to distrobox). |
 | v50 | The taskbar is docked to the bottom edge instead of floating. |

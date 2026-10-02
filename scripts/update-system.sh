@@ -17,8 +17,26 @@ if ! git pull --ff-only --quiet; then
   exit 1
 fi
 
+# Whatever happens before the update is applied (a failed step, Ctrl+C),
+# the repo is put back exactly as it was: `phase` says how far it got.
+#   updating:  flake.lock may be edited, nothing committed yet
+#   committed: the version commit exists but isn't applied
+#   finished:  applied, or deliberately kept (see "Applying failed")
+undo() {
+  git reset --quiet --soft HEAD~1
+  git restore --staged --worktree -- "${files[@]}"
+}
 log=$(mktemp)
-trap 'rm -f "$log"' EXIT
+phase=updating
+cleanup() {
+  rm -f "$log"
+  case $phase in
+    updating) git restore --staged --worktree -- "${files[@]}" 2>/dev/null || true ;;
+    committed) undo ;;
+  esac
+}
+trap cleanup EXIT
+
 echo "Checking for updates..."
 nix flake update 2>&1 | tee "$log"
 if git diff --quiet -- flake.lock; then
@@ -36,14 +54,10 @@ fi
 # carries a clean configuration revision.
 version=$(python3 scripts/bump-version.py "$log")
 git commit --quiet -m "chore: update flake.lock ($version)" -- "${files[@]}"
-undo() {
-  git reset --quiet --soft HEAD~1
-  git restore --staged --worktree -- "${files[@]}"
-}
+phase=committed
 
 echo "Building $version (nothing on the system changes yet)..."
 if ! new=$(nix build --no-link --print-out-paths "$CONFIG_FLAKE#nixosConfigurations.$CONFIG_HOST.config.system.build.toplevel"); then
-  undo
   echo "The build failed, so nothing was applied. flake.lock is back where it was."
   exit 1
 fi
@@ -65,16 +79,17 @@ case $how in
   n | N) mode=switch ;;
   r | R) mode=boot ;;
   *)
-    undo
     echo "Not applied. flake.lock is back where it was."
     exit 0
     ;;
 esac
 
 if ! sudo nixos-rebuild "$mode" --flake "$CONFIG_FLAKE#$CONFIG_HOST"; then
+  phase=finished
   echo "Applying failed. The $version commit is kept locally (not pushed)."
   exit 1
 fi
+phase=finished
 if [ "$mode" = boot ]; then
   done_msg="$version starts at the next restart"
 else
