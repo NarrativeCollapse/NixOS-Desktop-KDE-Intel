@@ -87,6 +87,14 @@
             " update-neovim backup-setup backup-test brew-update disk-health"
             " nixos-motd boxbuddy-rs'"
         )
+        # The standalone CLI tools come from Nix (bling.nix), not Homebrew.
+        machine.succeed(
+            "su - austin -c 'command -v rg fd bat tv jq yq gh glab dysk"
+            " trash-put tldr shellcheck stress-ng'"
+        )
+        # yq is the Go one (mikefarah/yq), as Homebrew's was.
+        yq = machine.succeed("su - austin -c 'yq --version'")
+        assert "mikefarah" in yq, yq
         # An unknown option prints the usage and exits 1 (the test shell uses
         # pipefail, so check the output rather than piping it to grep).
         usage = machine.fail("su - austin -c 'update bogus' 2>&1")

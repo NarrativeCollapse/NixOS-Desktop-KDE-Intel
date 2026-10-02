@@ -103,10 +103,8 @@ let
   };
 in
 {
-  # The rest of bazzite-cli.Brewfile's standalone tools (gh, glab, bat, fd,
-  # ripgrep, yq, dysk, trash-cli, tealdeer, television, shellcheck,
-  # stress-ng) come from Homebrew: see /Brewfile and modules/homebrew.nix.
-  # What stays here is wired into the shell or the MOTD.
+  # The banner's commands, plus bazzite-cli.Brewfile's standalone tools.
+  # (yt-dlp is the one left to Homebrew, which keeps up with it: /Brewfile.)
   home.packages = [
     motd
     toggleMotd
@@ -115,6 +113,23 @@ in
   ++ (with pkgs; [
     glow
     ugrep
+    # Search and view
+    ripgrep # rg
+    fd
+    bat
+    television # tv, fuzzy finder
+    # JSON and YAML
+    jq
+    yq-go # yq (the Go one, as Homebrew's; nixpkgs' plain yq is another tool)
+    # GitHub and GitLab
+    gh
+    glab
+    # Disks and files
+    dysk # disk usage overview
+    trash-cli
+    # Shell scripts and stress testing
+    shellcheck
+    stress-ng
   ]);
 
   # Share the Nix store, your Home Manager profile, and the current system
@@ -126,11 +141,12 @@ in
     container_additional_volumes="/nix/store:/nix/store:ro /etc/profiles/per-user:/etc/profiles/per-user:ro /run/current-system:/run/current-system:ro"
   '';
 
-  # tealdeer (`tldr`) is installed by brew; this is just its config.
-  xdg.configFile."tealdeer/config.toml".text = ''
-    [updates]
-    auto_update = true
-  '';
+  # `tldr`: short examples for a command. Its pages download separately and
+  # refresh on their own.
+  programs.tealdeer = {
+    enable = true;
+    settings.updates.auto_update = true;
+  };
 
   # bling.sh's aliases that the Home Manager modules below don't provide.
   home.shellAliases = {

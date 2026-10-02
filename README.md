@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v55** (git tag `v55`). See [Versions](#versions).
+**Current version: v56** (git tag `v56`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -71,7 +71,7 @@ taskbar icons, tray and exact layout may differ.</sub>
 
 ```
 flake.nix                        inputs, config version, HM wiring, checks, devShell
-Brewfile                         CLI tools managed by Homebrew (see Homebrew below)
+Brewfile                         yt-dlp, the one tool from Homebrew (see Homebrew below)
 statix.toml                      statix lint config
 wallpapers/                      extra wallpapers installed system-wide
 CLAUDE.md                        rules for AI-assisted changes (checks, versioning)
@@ -344,9 +344,10 @@ number is an example.</sub>
 - **Tools:** `ls`/`ll`/`la`/`lt` use eza (icons, folders first), `grep`
   uses ugrep, Ctrl+R searches history with atuin, `z <dir>` jumps to
   frequent directories (zoxide), `open <file>` opens it in the default app.
-  The standalone tools (`tldr`, `tv`, bat, fd, ripgrep, gh, glab, jq, yq,
-  dysk, trash-cli, shellcheck, stress-ng) come from
-  [Homebrew](#homebrew).
+  Bazzite's standalone tools are installed too: `tldr`, `tv`, bat, fd,
+  ripgrep, gh, glab, jq, yq, dysk, trash-cli, shellcheck and stress-ng
+  (from Nix, in `bling.nix`; Bazzite's yt-dlp comes from
+  [Homebrew](#homebrew)).
 - **direnv + nix-direnv:** add `use flake` to a project's `.envrc`, run
   `direnv allow`, and its `nix develop` shell loads whenever you `cd` in.
 - **Command not found → which package:** type a command you don't have and
@@ -355,7 +356,7 @@ number is an example.</sub>
   [nix-index-database](https://github.com/nix-community/nix-index-database)'s
   prebuilt index, so nothing is indexed on the laptop. (Its message suggests
   `nix-env -iA` to install; in this config, add the package to the Nix
-  config or Brewfile instead.)
+  config instead.)
 - **Container badge:** when this prompt runs inside a container, Starship
   starts it with 📦 and the container's name, like Bazzite's prompt.
 - **Your shell inside distrobox:** `~/.config/distrobox/distrobox.conf`
@@ -573,20 +574,26 @@ command to see the logs (`journalctl -u restic-backups-home`). See
 
 ## Homebrew
 
-A few command-line tools come from Homebrew instead of Nix, so they update
-as soon as upstream releases rather than when NixOS catches up. yt-dlp is
-the main reason: it breaks whenever video sites change.
+Homebrew is the escape hatch for command-line tools that must update faster
+than the NixOS release does. Right now that's one tool: **yt-dlp**, which
+breaks whenever video sites change and gets fixed within days, while the
+NixOS release's copy can lag weeks behind.
 
-**What's where:**
+**The rule:** everything comes from Nix unless Nix's version is genuinely
+too old to use. Each tool source has one job:
 
-- **Homebrew (`/Brewfile`):** standalone tools with no shell or system
-  integration: yt-dlp, gh, glab, ripgrep, fd, bat, jq, yq, television,
-  dysk, trash-cli, tealdeer, shellcheck, stress-ng.
-- **Nix (everything else):** anything wired into the shell or system:
-  atuin, zoxide, direnv, starship, eza, Neovim (it keeps its own ripgrep,
-  fd and other tools on its PATH),
-  git, Podman/distrobox, gaming tools, nh, restic, the banner and fastfetch,
-  GUI apps, and rarely-changing basics like git and curl.
+| Source | What it's for |
+| --- | --- |
+| Nix (system and Home Manager) | The OS, services, the shell and its tools, command-line utilities, KDE apps |
+| Flatpak | Desktop apps that work best sandboxed or come straight from their makers (Chrome, VLC, qBittorrent…) |
+| Homebrew (`/Brewfile`) | Tools that have to track upstream within days: yt-dlp |
+| distrobox | Another distro's userspace, for software made for it (.deb/.rpm, other distros' packages) |
+| Steam + Proton | Windows games |
+
+Until v56 Homebrew also carried gh, glab, ripgrep, fd, bat, jq, yq,
+television, dysk, trash-cli, tealdeer, shellcheck and stress-ng; they're
+stable enough that the NixOS release's versions do fine, so they moved to
+Nix (`home/austin/bling.nix`), where rollbacks and CI cover them.
 
 **How it works** (`modules/homebrew.nix`):
 
@@ -604,7 +611,7 @@ the main reason: it breaks whenever video sites change.
   too) lets brew's prebuilt binaries run: they expect the standard Linux
   loader at `/lib64`, which NixOS doesn't have otherwise.
 - Analytics are off (`HOMEBREW_NO_ANALYTICS=1`).
-- Tab completion works for brew and its tools (`gh <Tab>`, `rg --<Tab>`):
+- Tab completion works for brew and its tools (`yt-dlp --<Tab>`):
   brew's zsh completion directory is added before zsh initializes
   completions.
 
@@ -618,9 +625,9 @@ the main reason: it breaks whenever video sites change.
 
 **Trade-offs to know:** brew-installed tools aren't covered by NixOS
 rollbacks or CI, and a bad upstream release reaches you as soon as you
-update. To
-move a tool back to Nix, delete it from the Brewfile and add it to
-`home.packages` in `home/austin/bling.nix`.
+update. That's why the list is kept to what really needs it. To move a
+tool to Nix, delete it from the Brewfile and add it to `home.packages` in
+`home/austin/bling.nix`.
 
 ## Flatpak apps
 
@@ -850,7 +857,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v55** | Steam Remote Play's firewall ports are closed (they were open on every network, public Wi-Fi included); only mDNS stays open. Set `remotePlay.openFirewall = true` in `modules/gaming.nix` to stream games. |
+| **v56** | Homebrew is down to yt-dlp, the one tool that needs its fast updates; gh, glab, ripgrep, fd, bat, jq, yq, television, dysk, trash-cli, tealdeer, shellcheck and stress-ng now come from Nix. The README's Homebrew section states the rule and what each tool source is for. On the laptop, `brew-update` offers to uninstall the moved tools: say yes. |
+| v55 | Steam Remote Play's firewall ports are closed (they were open on every network, public Wi-Fi included); only mDNS stays open. Set `remotePlay.openFirewall = true` in `modules/gaming.nix` to stream games. |
 | v54 | Fixes: `update` [s] puts the repo back after any failure or Ctrl+C before applying (it could leave `flake.lock` modified, blocking the next run); the installer can be re-run after an interrupted attempt (it left the encrypted disk unlocked, so formatting failed with "device in use") and accepts the disk name with or without `/dev/` when confirming. |
 | v53 | sudo is now sudo-rs (memory-safe Rust rewrite; same `sudo` command, 15-minute password memory kept). |
 | v52 | Tidy-up: the welcome banner's `update` line names all its parts (system, Flatpak, Homebrew, Neovim, firmware). |

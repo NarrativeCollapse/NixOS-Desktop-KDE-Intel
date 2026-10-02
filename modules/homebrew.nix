@@ -6,11 +6,11 @@ let
 in
 {
   ################################
-  # Homebrew for fast-moving standalone CLI tools
+  # Homebrew: the escape hatch for tools that outpace NixOS (yt-dlp)
   ################################
 
-  # The formulas are listed in /Brewfile; everything else stays in Nix. See
-  # "Homebrew" in README.md for why the split is where it is.
+  # The formulas are listed in /Brewfile (just yt-dlp); everything else stays
+  # in Nix. See "Homebrew" in README.md for the rule.
 
   # Homebrew's Linux bottles and its bundled Ruby are ordinary prebuilt
   # binaries; nix-ld (base.nix) lets them run.
@@ -24,7 +24,7 @@ in
   environment.extraInit = ''
     export PATH="$PATH:${prefix}/bin:${prefix}/sbin"
   '';
-  # Tab completion for brew and its formulas (gh, rg, fd, ...): add brew's
+  # Tab completion for brew and its formulas (yt-dlp): add brew's
   # zsh completion directory before Home Manager's zsh runs compinit.
   home-manager.users.austin.programs.zsh.initContent = lib.mkOrder 550 ''
     fpath+=(${prefix}/share/zsh/site-functions)

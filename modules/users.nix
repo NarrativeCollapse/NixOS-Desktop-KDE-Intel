@@ -51,7 +51,7 @@
 
   # Kept lean: only what's genuinely system-wide. Desktop apps are in
   # desktop.nix (except BoxBuddy, which belongs with distrobox), per-user tools and editor config in Home Manager
-  # (home/austin/), fast-moving CLI tools in the Brewfile, and apps that come
+  # (home/austin/), yt-dlp in the Brewfile, and apps that come
   # with a module (podman, mullvad) aren't repeated here.
   environment.systemPackages = with pkgs; [
     # Containers
@@ -65,7 +65,7 @@
 
     # git system-wide so root can rebuild from the flake. (curl, coreutils
     # and the like come with NixOS itself.) Other command-line tools are in
-    # Home Manager and the Brewfile.
+    # Home Manager (and yt-dlp in the Brewfile).
     git
   ];
 

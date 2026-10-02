@@ -102,8 +102,9 @@
   # CLI tools & env
   ###############################
 
-  # jq comes from Homebrew (see /Brewfile). For a process monitor, Plasma's
-  # System Monitor (Ctrl+Esc for its process list) is built in.
+  # Standalone CLI tools (jq, gh, ripgrep, ...) are in bling.nix. For a
+  # process monitor, Plasma's System Monitor (Ctrl+Esc for its process list)
+  # is built in.
   # MangoHud and its config are in modules/gaming.nix, with Steam; the
   # Wayland clipboard tool is on Neovim's PATH (neovim.nix).
 
