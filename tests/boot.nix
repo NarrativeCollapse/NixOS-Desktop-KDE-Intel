@@ -100,11 +100,12 @@
         assert "${version}" in info, f"nixos-system-info: {info!r}, system: {system!r}"
 
     with subtest("Firewall: only mDNS is open"):
-        # Read the live rules (iptables or nftables, whichever is in use):
-        # mDNS (5353) must be there, Steam Remote Play's ports must not.
-        rules = "(iptables-save; nft list ruleset; true) 2>/dev/null"
-        machine.succeed(f"{rules} | grep -q 5353")
-        machine.fail(f"{rules} | grep -Eq '27036|10400'")
+        # Read the live rules (the NixOS firewall uses iptables here): mDNS
+        # (5353) must be there, Steam Remote Play's ports must not.
+        rules = machine.succeed("iptables-save; ip6tables-save")
+        assert "5353" in rules, rules
+        for port in ["27036", "10400"]:
+            assert port not in rules, rules
 
     with subtest("sudo is sudo-rs"):
         sudo_version = machine.succeed("sudo --version")
