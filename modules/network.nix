@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ options, pkgs, ... }:
 
 {
   ################################
@@ -19,10 +19,21 @@
 
   # The module runs the daemon and installs the app itself, so don't also
   # list mullvad-vpn in environment.systemPackages.
+  #
+  # How to ask for the app changed between releases: NixOS 26.05 has one
+  # package with the daemon and the app (pkgs.mullvad-vpn), while 26.11
+  # splits them and adds gui.enable. This picks whichever the running
+  # release has; once on 26.11, keep just `gui.enable = true;` (see
+  # "Release upgrade" in README.md).
   services.mullvad-vpn = {
     enable = true;
-    package = pkgs.mullvad-vpn; # GUI build (use pkgs.mullvad for CLI-only)
-  };
+  }
+  // (
+    if options.services.mullvad-vpn ? gui then
+      { gui.enable = true; }
+    else
+      { package = pkgs.mullvad-vpn; }
+  );
 
   ################################
   # Local discovery: mDNS

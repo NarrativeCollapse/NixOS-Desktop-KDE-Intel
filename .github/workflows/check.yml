@@ -29,6 +29,12 @@ jobs:
       - name: nix flake check
         run: nix flake check --print-build-logs
 
+      # NixOS warns about a renamed or deprecated option for a release or so
+      # before it becomes an error, so a warning now is a failed build at a
+      # later upgrade. Fail now, while the fix is easy.
+      - name: No evaluation warnings
+        run: scripts/check-eval-warnings.sh
+
       # Evaluating isn't building: this catches packages that fail to build.
       - name: Build the system
         run: nix build --print-build-logs --no-link .#nixosConfigurations.shitbox.config.system.build.toplevel

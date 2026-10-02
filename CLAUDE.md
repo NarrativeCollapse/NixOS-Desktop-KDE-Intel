@@ -8,7 +8,10 @@ README.md for layout and usage.
 Run `nix fmt` and `nix flake check`; both must pass with no evaluation
 warnings. `nix flake check` includes the VM boot test (`tests/boot.nix`,
 needs KVM, a few minutes). CI (`.github/workflows/check.yml`) runs the same
-check plus a full system build on every push.
+check, `scripts/check-eval-warnings.sh` and a full system build on every
+push; `next-release.yml` runs them weekly against the next NixOS release
+(see "Release upgrade" in README.md). Changes must evaluate on both
+releases until the upgrade.
 
 ## Versioning (keep this up to date)
 

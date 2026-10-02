@@ -1,0 +1,46 @@
+name: Next NixOS release
+
+# Runs the same checks as the Check workflow, but against the next NixOS
+# release instead of the one flake.lock pins, so options and packages that
+# change show up here weeks before an upgrade. flake.lock isn't touched.
+# A failure here doesn't block anything; see "Release upgrade" in README.md.
+on:
+  schedule:
+    - cron: "23 6 * * 1" # Mondays, 06:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: next-release
+  cancel-in-progress: true
+
+env:
+  # What "next release" means. Until NixOS 26.11 branches (November 2026),
+  # it's unstable, which 26.11 is cut from: nixpkgs nixos-unstable, Home
+  # Manager master, plasma-manager's latest commit. Once it branches, use
+  # nixpkgs/nixos-26.11 and home-manager/release-26.11.
+  NEXT: >-
+    --no-write-lock-file
+    --override-input nixpkgs github:NixOS/nixpkgs/nixos-unstable
+    --override-input home-manager github:nix-community/home-manager
+    --override-input plasma-manager github:nix-community/plasma-manager
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup-nix
+
+      # $NEXT is unquoted on purpose: it's a list of arguments.
+      - name: nix flake check
+        run: nix flake check --print-build-logs $NEXT
+
+      - name: No evaluation warnings
+        run: scripts/check-eval-warnings.sh $NEXT
+
+      - name: Build the system
+        run: nix build --print-build-logs --no-link $NEXT .#nixosConfigurations.shitbox.config.system.build.toplevel

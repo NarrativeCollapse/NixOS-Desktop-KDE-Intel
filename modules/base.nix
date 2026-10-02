@@ -89,7 +89,11 @@
     # Logging / misc
     ################################
 
-    services.journald.extraConfig = ''
+    # Cap the journal's size. A drop-in file rather than a journald option,
+    # because the option changed between NixOS 26.05 (extraConfig) and 26.11
+    # (settings.Journal); systemd reads the file the same way on both.
+    environment.etc."systemd/journald.conf.d/size.conf".text = ''
+      [Journal]
       SystemMaxUse=500M
       RuntimeMaxUse=200M
     '';

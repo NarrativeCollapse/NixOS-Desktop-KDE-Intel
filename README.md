@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v56** (git tag `v56`). See [Versions](#versions).
+**Current version: v57** (git tag `v57`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -78,7 +78,9 @@ CLAUDE.md                        rules for AI-assisted changes (checks, versioni
 docs/screenshots/                images used in this README
 .github/actions/setup-nix/       CI setup shared by the workflows (disk space + Nix)
 .github/workflows/
-  check.yml                      CI: nix flake check (incl. VM boot test) + full system build
+  check.yml                      CI: nix flake check (incl. VM boot test), no evaluation
+                                 warnings, full system build
+  next-release.yml               the same checks against the next NixOS release (weekly)
   iso.yml                        test-builds the installer ISO (run by hand)
   update-flake-lock.yml          flake.lock update pull request (run by hand)
 hosts/shitbox/
@@ -117,6 +119,7 @@ scripts/                         the longer shell scripts, as plain bash (see be
   nixos-motd.sh                  the welcome banner
   lib/confirm.sh                 the shared yes/no prompt
   bump-version.py                version bump used by `update` and the update workflow
+  check-eval-warnings.sh         CI: fail if evaluating the system prints a warning
 ```
 
 **Where things go.** Each module covers one topic, and anything tied to a
@@ -319,6 +322,56 @@ fwupd's refresh of firmware metadata (firmware itself only installs through
 `update` [w] or `fwupdmgr update`), and tldr's page cache. Nothing pops up
 "updates available" notifications either: Discover, which would, isn't
 installed.
+
+## Release upgrade
+
+NixOS has two releases a year (May and November), and each gets security
+updates for about seven months. This config is on **26.05**, which is
+supported until the end of December 2026. **26.11** is due in late
+November, and moving to it is a deliberate step, not something `update`
+does: `update` only moves within the release.
+
+**Already in place, so upgrade day is short:**
+
+- **The Next NixOS release workflow** (`.github/workflows/next-release.yml`,
+  every Monday and by hand from the Actions tab) runs the same checks as
+  CI, VM boot test included, against the next release instead of the one
+  `flake.lock` pins. Until 26.11 branches (November) "next" means
+  nixos-unstable, which 26.11 is cut from. A renamed option or a removed
+  package fails there weeks ahead, while the laptop is unaffected.
+  Unstable occasionally breaks for reasons that never reach a release
+  (a package failing to build for a few days), so look at why a run failed
+  before acting on it.
+- **CI fails on evaluation warnings.** NixOS warns about a renamed or
+  deprecated option for a release before making it an error, so a warning
+  today is a broken build at the next upgrade.
+- **Known differences are handled for both releases.** The first run
+  against unstable (October 2026) found two, both fixed in v57: the
+  journal's size limit is now a systemd drop-in file (the journald option
+  changed), and Mullvad picks its 26.05 or 26.11 setup automatically (26.11
+  splits the app from the daemon).
+
+**Upgrade day** (once 26.11 is out and the Next release run is green):
+
+1. In `flake.nix`, change `nixos-26.05` to `nixos-26.11` and
+   `release-26.05` to `release-26.11` (and "26.05" in the description).
+   nixpkgs, Home Manager and plasma-manager have to move together.
+2. Move plasma-manager's pin to a recent commit that works with 26.11 (it
+   has no release branches; the Next release workflow tests its latest
+   commit). The other inputs follow nixpkgs and need nothing.
+3. Run `nix flake update`, bump the version, then push; CI must be green.
+4. Skim the 26.11 release notes' "Backward Incompatibilities" for anything
+   that changes behavior without failing a check.
+5. On the laptop: `cd ~/nixos-config && git pull && rebuild`, then reboot.
+   If something's wrong, pick the previous version in the boot menu, or
+   run `update-rollback`.
+
+Leave `system.stateVersion` and `home.stateVersion` at 25.11: they record
+the release the laptop was installed with, not the one it runs.
+
+Afterwards, tidy up: in `modules/network.nix` keep just
+`gui.enable = true;` for Mullvad, and point the Next release workflow back
+at nixos-unstable (for 27.05).
 
 ## Terminal (Bazzite-style)
 
@@ -794,15 +847,19 @@ the full report any time.
 
 ## CI
 
-Three GitHub Actions workflows live in `.github/workflows/`:
+Four GitHub Actions workflows live in `.github/workflows/`:
 
 - **Check** (every push to `main` and every pull request): runs
   `nix flake check`, which includes booting the system in a VM (the boot
-  test above), and builds the whole system, so a package that fails to
-  build, or a change that builds but doesn't boot, shows up on GitHub
-  before you rebuild the laptop. Results are on the
-  repository's Actions tab. A newer push cancels an older run still in
-  progress.
+  test above), fails on any evaluation warning (a renamed or deprecated
+  option; `scripts/check-eval-warnings.sh`), and builds the whole system,
+  so a package that fails to build, or a change that builds but doesn't
+  boot, shows up on GitHub before you rebuild the laptop. Results are on
+  the repository's Actions tab. A newer push cancels an older run still
+  in progress.
+- **Next NixOS release** (Mondays, or by hand): the same checks against
+  the next NixOS release, without touching `flake.lock`; see
+  [Release upgrade](#release-upgrade). A failure there blocks nothing.
 - **Build installer ISO** (only when run by hand from the Actions tab):
   builds the installer ISO and offers it as a download on the run's page
   for 7 days (see [Reinstalling](#reinstalling-the-installer-iso)).
@@ -821,7 +878,7 @@ Three GitHub Actions workflows live in `.github/workflows/`:
 **Nothing slow is compiled.** Everything heavy downloads prebuilt from
 cache.nixos.org; CI (and the laptop) only build small config files. The
 one former exception, Xwayland, is now the stock package: see
-`programs.xwayland.defaultFontPath` in `modules/desktop.nix`. Both
+`programs.xwayland.defaultFontPath` in `modules/desktop.nix`. The
 workflows share their setup (disk space, Nix) through
 `.github/actions/setup-nix/action.yml`.
 
@@ -857,7 +914,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v56** | Homebrew is down to yt-dlp, the one tool that needs its fast updates; gh, glab, ripgrep, fd, bat, jq, yq, television, dysk, trash-cli, tealdeer, shellcheck and stress-ng now come from Nix. The README's Homebrew section states the rule and what each tool source is for. On the laptop, `brew-update` offers to uninstall the moved tools: say yes. |
+| **v57** | Ready for NixOS 26.11: the journal size limit moved to a systemd drop-in file and Mullvad's setup adapts to either release, the two differences a first run against unstable found. CI now fails on evaluation warnings, and a weekly Next NixOS release workflow runs the checks against the upcoming release. New README section: Release upgrade. |
+| v56 | Homebrew is down to yt-dlp, the one tool that needs its fast updates; gh, glab, ripgrep, fd, bat, jq, yq, television, dysk, trash-cli, tealdeer, shellcheck and stress-ng now come from Nix. The README's Homebrew section states the rule and what each tool source is for. On the laptop, `brew-update` offers to uninstall the moved tools: say yes. |
 | v55 | Steam Remote Play's firewall ports are closed (they were open on every network, public Wi-Fi included); only mDNS stays open. Set `remotePlay.openFirewall = true` in `modules/gaming.nix` to stream games. |
 | v54 | Fixes: `update` [s] puts the repo back after any failure or Ctrl+C before applying (it could leave `flake.lock` modified, blocking the next run); the installer can be re-run after an interrupted attempt (it left the encrypted disk unlocked, so formatting failed with "device in use") and accepts the disk name with or without `/dev/` when confirming. |
 | v53 | sudo is now sudo-rs (memory-safe Rust rewrite; same `sudo` command, 15-minute password memory kept). |
