@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v58** (git tag `v58`). See [Versions](#versions).
+**Current version: v59** (git tag `v59`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -14,6 +14,25 @@ app launcher, Google Chrome pinned to the taskbar, the taskbar docked to
 the bottom edge (not floating), and the 24-hour clock with a
 military-style date. It's a rendered mockup, not a photo of the laptop; the real
 taskbar icons, tray and exact layout may differ.</sub>
+
+## Quick start
+
+1. **Install.** On a blank or broken laptop: boot the
+   [installer ISO](#reinstalling-the-installer-iso) and run **Install
+   shitbox**. On a laptop already running NixOS: [clone and
+   rebuild](#install).
+2. **Set up backups once:** `backup-setup` (with the USB backup drive
+   plugged in), then `backup-test`. Until then nothing is backed up. See
+   [Backups](#backups).
+3. **Check the hardware:** go through the
+   [hardware checklist](#hardware-checklist) (10 minutes).
+4. **Day to day:** `update` checks for updates and asks before applying
+   anything; after editing the config, `rebuild`. If an update breaks
+   something, pick the previous version in the boot menu, or run
+   `update-rollback`. More in [Everyday use](#everyday-use).
+5. **Changing the config:** [Layout](#layout) says which file covers what.
+
+Everything below is reference: read the part you need.
 
 ## What's in it
 
@@ -37,7 +56,8 @@ taskbar icons, tray and exact layout may differ.</sub>
   systemd initrd, LUKS with TRIM passed through to the SSD, zram swap with the
   kernel tuned for it (as on Fedora and Pop!_OS), systemd-oomd closing a
   runaway app before memory pressure freezes the desktop,
-  power-profiles-daemon + thermald, fwupd, smartd watching the SSD's health
+  power-profiles-daemon (power saver on battery, balanced on AC) +
+  thermald, fwupd, smartd watching the SSD's health
   (see [Failure alerts](#failure-alerts)), and Intel VA-API/QSV drivers so
   video decodes on the GPU. Closing the lid suspends on battery and does
   nothing on AC. A Memtest86+ entry at the bottom of the boot menu tests
@@ -71,6 +91,30 @@ taskbar icons, tray and exact layout may differ.</sub>
 - **Updates:** nothing updates on its own. `update` checks the system,
   Flatpak apps, Homebrew tools and Neovim plugins, shows what would change,
   and applies it only when you say yes (see [Updates](#updates)).
+
+## What protects what
+
+Each protection here answers a specific risk. If a risk you care about
+isn't in the table, nothing covers it yet.
+
+| Risk | Covered by | Where |
+| --- | --- | --- |
+| Laptop lost or stolen | Full-disk encryption (LUKS2); the boot-menu editor is locked, so nobody can boot a root shell from it | `hosts/shitbox/`, `modules/hardware.nix` |
+| Losing your files (dead SSD, deletion, theft) | Daily restic backups of `/home` to a USB drive, with a warning when they go stale; smartd warns when the SSD starts failing | `modules/backup.nix`, `modules/hardware.nix` |
+| A bad update | Updates only when you choose, with a preview; the last 10 versions stay in the boot menu to go back to; CI builds and boot-tests every change first | [Updates](#updates), [CI](#ci) |
+| The system breaking with no update (crash, full disk) | oomd closes a runaway app before the desktop freezes; Nix frees store space when the disk runs low; capped journal; Memtest86+ for suspect RAM | `modules/hardware.nix`, `modules/base.nix` |
+| A tampered or changed package | Every input pinned in `flake.lock` by hash; packages come from the signed NixOS binary cache | `flake.lock` |
+| Hostile Wi-Fi | Firewall with only mDNS open; ICMP redirects and source routing ignored; Mullvad VPN | `modules/network.nix` |
+| Tracking while browsing | LibreWolf (privacy-hardened Firefox) as the default browser; Mullvad hides your IP | `modules/desktop.nix` |
+| A malicious or buggy app | Flatpak apps run sandboxed (Flatseal to tighten them); `sudo` is sudo-rs (memory-safe) | [Flatpak apps](#flatpak-apps) |
+| Firmware vulnerabilities | fwupd installs BIOS and device firmware from the LVFS, when the vendor publishes it | `update` [w] |
+| Forgetting what changed | The config is in git: every system version is a commit and a tag | [Versions](#versions) |
+
+**Not covered:** a second, off-site copy of the backups (a fire or burglary
+can take the laptop and the USB drive together), Secure Boot (someone with
+the laptop in hand could tamper with the unencrypted boot partition to
+capture the disk password), and anything beyond what Flatpak's sandbox and
+normal Linux user separation provide against malware.
 
 ## Layout
 
@@ -377,6 +421,38 @@ the release the laptop was installed with, not the one it runs.
 Afterwards, tidy up: in `modules/network.nix` keep just
 `gui.enable = true;` for Mullvad, and point the Next release workflow back
 at nixos-unstable (for 27.05).
+
+## Hardware checklist
+
+CI boots the config in a virtual machine, which has no Wi-Fi, Bluetooth,
+camera, battery or real GPU. Run through this on the laptop after
+installing, after a release upgrade, and when an update touches the kernel
+or graphics. It takes about 10 minutes.
+
+- [ ] **Wi-Fi:** connects, and reconnects after suspend.
+- [ ] **Suspend and resume:** close the lid on battery, open it: the lock
+      screen comes back with Wi-Fi and sound working.
+- [ ] **Bluetooth:** the Xbox controller pairs and works in a game.
+- [ ] **Sound:** speakers, headphone jack, and the volume keys.
+- [ ] **Webcam and microphone:** test in Chrome (for example a video call
+      test page).
+- [ ] **External display:** HDMI or USB-C shows a picture and can be
+      arranged in System Settings → Display Configuration.
+- [ ] **Video decoding on the GPU:** a 4K YouTube video plays smoothly in
+      Chrome, and `chrome://gpu` lists **Video Decode: Hardware
+      accelerated**.
+- [ ] **Power profiles:** unplug the charger: the battery icon's popup
+      shows **Power Save**; plug in: **Balanced**.
+- [ ] **Brightness and keyboard keys:** brightness, mute and media keys
+      work.
+- [ ] **Steam:** a game starts (with Proton for a Windows game), and
+      `steam-hud` shows the MangoHud overlay.
+- [ ] **Printing:** the network printer appears on its own.
+- [ ] **Health:** `disk-health` shows PASSED, and
+      `systemctl --failed` lists nothing.
+
+If something fails right after an update, boot the previous version from
+the boot menu: if it works there, the update caused it.
 
 ## Terminal (Bazzite-style)
 
@@ -824,6 +900,12 @@ What it sets now:
 
   It runs at the first login after a rebuild that changes it, so changes
   you make to the taskbar by hand afterwards stay.
+- **Power profile follows the charger:** balanced when plugged in, power
+  saver on battery (and when the battery is low), for longer battery life.
+  For more speed while plugged in (games, big builds), change `AC` to
+  `"performance"` in `plasma.nix`. Only these settings are managed; the
+  rest of System Settings → Energy Saving stays yours, though a change to
+  the profiles there is reset by the next rebuild.
 - It explicitly writes nothing to KRunner's web-shortcut settings, which
   plasma-manager would otherwise reset.
 
@@ -932,7 +1014,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v58** | Stability: disk-full protection (Nix frees unused store space when under 5 GB free during a build), a Memtest86+ boot-menu entry, and a 45-second shutdown timeout for stuck services instead of 90. README: how to roll back a Flatpak app. |
+| **v59** | The power profile follows the charger: power saver on battery, balanced on AC. README: a Quick start at the top, a "What protects what" table (each risk and what covers it), and a hardware checklist for what CI can't test. |
+| v58 | Stability: disk-full protection (Nix frees unused store space when under 5 GB free during a build), a Memtest86+ boot-menu entry, and a 45-second shutdown timeout for stuck services instead of 90. README: how to roll back a Flatpak app. |
 | v57 | Ready for NixOS 26.11: the journal size limit moved to a systemd drop-in file and Mullvad's setup adapts to either release, the two differences a first run against unstable found. CI now fails on evaluation warnings, and a weekly Next NixOS release workflow runs the checks against the upcoming release. New README section: Release upgrade. |
 | v56 | Homebrew is down to yt-dlp, the one tool that needs its fast updates; gh, glab, ripgrep, fd, bat, jq, yq, television, dysk, trash-cli, tealdeer, shellcheck and stress-ng now come from Nix. The README's Homebrew section states the rule and what each tool source is for. On the laptop, `brew-update` offers to uninstall the moved tools: say yes. |
 | v55 | Steam Remote Play's firewall ports are closed (they were open on every network, public Wi-Fi included); only mDNS stays open. Set `remotePlay.openFirewall = true` in `modules/gaming.nix` to stream games. |

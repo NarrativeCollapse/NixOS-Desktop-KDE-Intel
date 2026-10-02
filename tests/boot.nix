@@ -81,6 +81,12 @@
             timeout=120,
         )
 
+    with subtest("The power profile follows the charger (plasma-manager)"):
+        machine.wait_until_succeeds(
+            "grep -qx 'PowerProfile=power-saver' /home/austin/.config/powerdevilrc",
+            timeout=120,
+        )
+
     with subtest("The config's commands are installed and run"):
         machine.succeed(
             "su - austin -c 'command -v update update-system update-rollback"

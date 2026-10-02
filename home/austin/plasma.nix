@@ -68,6 +68,18 @@
     }
   '';
 
+  # Power profile follows the charger (power-profiles-daemon, switched by
+  # Plasma's power management): balanced when plugged in, power saver on
+  # battery for longer battery life. For more speed while plugged in (games,
+  # big builds), make AC "performance". Only these three keys are managed;
+  # the rest of Energy Saving in System Settings stays yours, but a change
+  # to these there is reset by the next rebuild.
+  programs.plasma.powerdevil = {
+    AC.powerProfile = "balanced";
+    battery.powerProfile = "powerSaving";
+    lowBattery.powerProfile = "powerSaving";
+  };
+
   # plasma-manager's web-search-keywords module always writes KRunner's web
   # shortcut settings, including an empty "preferred shortcuts" list that
   # would reset your choices in System Settings. Write nothing there instead.
