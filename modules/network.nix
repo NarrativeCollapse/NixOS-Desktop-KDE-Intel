@@ -41,10 +41,10 @@
   # Firewall + hardening
   ################################
 
-  # The NixOS firewall is on by default with nothing open; the only ports
-  # opened are by Steam Remote Play (gaming.nix) and Avahi (above). Mullvad
-  # manages its own killswitch and routing, so don't add VPN rules here that
-  # would fight the daemon.
+  # The NixOS firewall is on by default with nothing open; the only port
+  # opened is mDNS for Avahi (above). Steam Remote Play's ports stay closed
+  # (gaming.nix). Mullvad manages its own killswitch and routing, so don't
+  # add VPN rules here that would fight the daemon.
 
   # Network hardening for untrusted Wi-Fi. rp_filter is deliberately not
   # set: the NixOS firewall handles reverse-path checking, and strict values

@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v54** (git tag `v54`). See [Versions](#versions).
+**Current version: v55** (git tag `v55`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -42,8 +42,8 @@ taskbar icons, tray and exact layout may differ.</sub>
   video decodes on the GPU. Closing the lid suspends on battery and does
   nothing on AC.
 - **Network & security:** NetworkManager with systemd-resolved, Mullvad VPN
-  (official module), firewall on with only Steam Remote Play's ports and
-  mDNS (UDP 5353, for printer discovery) open, and hardening sysctls for
+  (official module), firewall on with only mDNS (UDP 5353, for printer
+  discovery) open, and hardening sysctls for
   untrusted Wi-Fi. `sudo` is [sudo-rs](https://github.com/trifectatechfoundation/sudo-rs),
   a memory-safe rewrite (Ubuntu 26.04 LTS's default): the same command,
   remembering your password for 15 minutes. Typing the password shows a
@@ -484,9 +484,11 @@ HEAD` (or `git checkout <commit> -- home/austin/nvim/lazy-lock.json`), then
    in `my.unfreePackages`. Add it in the module that installs the package,
    the way `modules/gaming.nix` lists `steam` (the option itself is in
    `modules/base.nix`).
-5. **Steam Remote Play** opens firewall ports on every network. Set
-   `remotePlay.openFirewall = false` in `modules/gaming.nix` if you don't
-   stream games.
+5. **Steam Remote Play** (streaming games from this laptop to a TV or
+   another PC) is closed in the firewall: its ports would be open on every
+   network, public Wi-Fi included. Playing games, online play and the
+   gamescope session don't need it. To stream, set
+   `remotePlay.openFirewall = true` in `modules/gaming.nix` and rebuild.
 
 ## Backups
 
@@ -848,7 +850,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v54** | Fixes: `update` [s] puts the repo back after any failure or Ctrl+C before applying (it could leave `flake.lock` modified, blocking the next run); the installer can be re-run after an interrupted attempt (it left the encrypted disk unlocked, so formatting failed with "device in use") and accepts the disk name with or without `/dev/` when confirming. |
+| **v55** | Steam Remote Play's firewall ports are closed (they were open on every network, public Wi-Fi included); only mDNS stays open. Set `remotePlay.openFirewall = true` in `modules/gaming.nix` to stream games. |
+| v54 | Fixes: `update` [s] puts the repo back after any failure or Ctrl+C before applying (it could leave `flake.lock` modified, blocking the next run); the installer can be re-run after an interrupted attempt (it left the encrypted disk unlocked, so formatting failed with "device in use") and accepts the disk name with or without `/dev/` when confirming. |
 | v53 | sudo is now sudo-rs (memory-safe Rust rewrite; same `sudo` command, 15-minute password memory kept). |
 | v52 | Tidy-up: the welcome banner's `update` line names all its parts (system, Flatpak, Homebrew, Neovim, firmware). |
 | v51 | BoxBuddy, a window for managing distrobox boxes (Nix package, next to distrobox). |

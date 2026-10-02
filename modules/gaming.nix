@@ -7,9 +7,12 @@
 
   programs.steam = {
     enable = true;
-    # Opens TCP 27036-27037 and UDP 10400-10401/27031-27036 on every network,
-    # public Wi-Fi included. Set to false if you don't use Remote Play.
-    remotePlay.openFirewall = true;
+    # Remote Play (streaming games from this laptop to another device) would
+    # open TCP 27036-27037 and UDP 10400-10401/27031-27036 on every network,
+    # public Wi-Fi included. Off: Steam, its gamescope session and online
+    # play only connect outward and don't need them. Set to true to stream
+    # to a TV or another PC on your network.
+    remotePlay.openFirewall = false;
     # dedicatedServer.openFirewall (27015) is deliberately off: it is only
     # for hosting Source dedicated servers.
     gamescopeSession.enable = true;
