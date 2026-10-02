@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v52** (git tag `v52`). See [Versions](#versions).
+**Current version: v53** (git tag `v53`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -44,7 +44,11 @@ taskbar icons, tray and exact layout may differ.</sub>
 - **Network & security:** NetworkManager with systemd-resolved, Mullvad VPN
   (official module), firewall on with only Steam Remote Play's ports and
   mDNS (UDP 5353, for printer discovery) open, and hardening sysctls for
-  untrusted Wi-Fi.
+  untrusted Wi-Fi. `sudo` is [sudo-rs](https://github.com/trifectatechfoundation/sudo-rs),
+  a memory-safe rewrite (Ubuntu 26.04 LTS's default): the same command,
+  remembering your password for 15 minutes. Typing the password shows a
+  `*` per key; `sudo -E` isn't supported. Shell shortcuts like `sudo !!`
+  work as before (zsh expands them).
 - **Gaming:** Steam with a gamescope session and Proton-GE available as a
   compatibility tool, GameMode, MangoHud, and xpadneo for Xbox controllers
   over Bluetooth.
@@ -91,7 +95,7 @@ modules/
   desktop.nix                    Plasma 6/SDDM, wallpapers, apps (KDE + LibreWolf),
                                  Flatpak, PipeWire, fonts, printing
   gaming.nix                     Steam, Proton-GE, gamescope, GameMode, MangoHud, xpadneo
-  users.nix                      user, sudo, zsh, podman + distrobox + BoxBuddy,
+  users.nix                      user, sudo (sudo-rs), zsh, podman + distrobox + BoxBuddy,
                                  command-line system packages
   backup.nix                     restic job for /home (needs one-time setup)
   homebrew.nix                   Homebrew PATH, completions, `brew-update`
@@ -827,7 +831,6 @@ comments:
   (`modules/gaming.nix`)
 - A `nixpkgs-unstable` input for cherry-picking newer packages (`flake.nix`)
 - `trusted-users` and `warn-dirty` (`modules/base.nix`)
-- `sudo-rs` in place of sudo (`modules/users.nix`)
 
 ## Versions
 
@@ -843,7 +846,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v52** | Tidy-up: the welcome banner's `update` line names all its parts (system, Flatpak, Homebrew, Neovim, firmware). |
+| **v53** | sudo is now sudo-rs (memory-safe Rust rewrite; same `sudo` command, 15-minute password memory kept). |
+| v52 | Tidy-up: the welcome banner's `update` line names all its parts (system, Flatpak, Homebrew, Neovim, firmware). |
 | v51 | BoxBuddy, a window for managing distrobox boxes (Nix package, next to distrobox). |
 | v50 | The taskbar is docked to the bottom edge instead of floating. |
 | v49 | Neovim is now [LazyVim](https://www.lazyvim.org): config in `home/austin/nvim/` (linked as `~/.config/nvim`, plugin versions pinned in `lazy-lock.json`), tools from Nix, the Nix language extra, and `update` [n] for plugin updates. The previous telescope/treesitter setup is replaced. |

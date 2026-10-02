@@ -19,13 +19,21 @@
     shell = pkgs.zsh;
   };
 
-  # Remember the sudo password for 15 minutes instead of 5.
-  security.sudo.extraConfig = ''
-    Defaults timestamp_timeout=15
-  '';
-  # If you'd like the Rust reimplementation instead, swap the line above for:
-  #   security.sudo.enable = false;
-  #   security.sudo-rs.enable = true;
+  # sudo is sudo-rs: a memory-safe Rust rewrite of sudo, the default in
+  # Ubuntu 26.04 LTS. The command is still `sudo`, and every script here
+  # uses it the plain way (`sudo <command>`), which it fully supports. It
+  # also provides `su`. Differences you might notice: typing the password
+  # shows `*` per key (`Defaults !pwfeedback` turns that off), and
+  # `sudo -E` isn't supported (nothing here uses it). To go back to the
+  # original sudo, delete this block.
+  security.sudo-rs = {
+    enable = true;
+    # Remember the password for 15 minutes (sudo-rs's default too; set
+    # here so it's visible).
+    extraConfig = ''
+      Defaults timestamp_timeout=15
+    '';
+  };
 
   ################################
   # Containers: Podman

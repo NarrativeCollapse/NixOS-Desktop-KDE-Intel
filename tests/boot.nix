@@ -99,6 +99,10 @@
         system = machine.succeed("readlink /run/current-system")
         assert "${version}" in info, f"nixos-system-info: {info!r}, system: {system!r}"
 
+    with subtest("sudo is sudo-rs"):
+        sudo_version = machine.succeed("sudo --version")
+        assert "sudo-rs" in sudo_version, sudo_version
+
     with subtest("Neovim is set up for LazyVim"):
         # ~/.config/nvim points into the config checkout (the VM has none,
         # so the link dangles here; on the laptop it's ~/nixos-config).
