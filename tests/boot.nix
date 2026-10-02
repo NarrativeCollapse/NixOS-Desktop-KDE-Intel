@@ -115,6 +115,17 @@
         for port in ["27036", "10400"]:
             assert port not in rules, rules
 
+    with subtest("Stability settings are in effect"):
+        # Disk-full protection (nix.conf), and the 45-second stop timeout
+        # for system services and austin's session.
+        machine.succeed("grep -qx 'min-free = 5368709120' /etc/nix/nix.conf")
+        stop = machine.succeed("systemctl show -p DefaultTimeoutStopUSec")
+        assert stop.strip() == "DefaultTimeoutStopUSec=45s", stop
+        user_stop = machine.succeed(
+            "systemctl --user --machine=austin@.host show -p DefaultTimeoutStopUSec"
+        )
+        assert user_stop.strip() == "DefaultTimeoutStopUSec=45s", user_stop
+
     with subtest("sudo is sudo-rs"):
         sudo_version = machine.succeed("sudo --version")
         assert "sudo-rs" in sudo_version, sudo_version

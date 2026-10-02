@@ -35,6 +35,10 @@ in
     # Shorter menu wait on a laptop you boot often.
     timeout = 3;
   };
+  # A Memtest86+ entry at the bottom of the boot menu. Faulty RAM causes
+  # random crashes that look like software bugs; a pass or two (leave it
+  # running for an hour or more) rules it out. Esc leaves it.
+  boot.loader.systemd-boot.memtest86.enable = true;
 
   boot.initrd.systemd.enable = true;
 

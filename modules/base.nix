@@ -30,6 +30,13 @@
         dates = [ "weekly" ];
       };
 
+      # Disk-full protection: while Nix downloads or builds, if free space
+      # drops below 5 GiB it deletes unused store paths until 10 GiB are
+      # free. Only paths nothing refers to go; the system generations in
+      # the boot menu are kept (they're cleaned weekly by nh, below).
+      settings.min-free = 5 * 1024 * 1024 * 1024;
+      settings.max-free = 10 * 1024 * 1024 * 1024;
+
       # Optional QoL, off by default:
       # settings.trusted-users = [ "austin" ];  # sudo-less cache/builder ops
       # settings.warn-dirty = false;            # silence "Git tree is dirty"
@@ -88,6 +95,17 @@
     ################################
     # Logging / misc
     ################################
+
+    # Shutdown: wait at most 45 seconds for a service that won't stop
+    # (systemd's default is 90, per service), as Fedora does. Both for
+    # system services and for the services in your login session. The
+    # session's setting is a drop-in file because its NixOS option changed
+    # between 26.05 and 26.11 (see the journal below).
+    systemd.settings.Manager.DefaultTimeoutStopSec = "45s";
+    environment.etc."systemd/user.conf.d/stop-timeout.conf".text = ''
+      [Manager]
+      DefaultTimeoutStopSec=45s
+    '';
 
     # Cap the journal's size. A drop-in file rather than a journald option,
     # because the option changed between NixOS 26.05 (extraConfig) and 26.11

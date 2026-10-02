@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v57** (git tag `v57`). See [Versions](#versions).
+**Current version: v58** (git tag `v58`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -40,7 +40,8 @@ taskbar icons, tray and exact layout may differ.</sub>
   power-profiles-daemon + thermald, fwupd, smartd watching the SSD's health
   (see [Failure alerts](#failure-alerts)), and Intel VA-API/QSV drivers so
   video decodes on the GPU. Closing the lid suspends on battery and does
-  nothing on AC.
+  nothing on AC. A Memtest86+ entry at the bottom of the boot menu tests
+  the RAM, the first suspect when crashes look random.
 - **Network & security:** NetworkManager with systemd-resolved, Mullvad VPN
   (official module), firewall on with only mDNS (UDP 5353, for printer
   discovery) open, and hardening sysctls for
@@ -63,6 +64,10 @@ taskbar icons, tray and exact layout may differ.</sub>
   deduplication, daily restic backups of
   `/home` (needs the one-time setup below) with a desktop warning when they
   go stale, and GitHub Actions that build every push (see [CI](#ci)).
+  Disk-full protection: if free space drops below 5 GB while Nix is
+  downloading or building, it deletes unused store paths (never the
+  generations in the boot menu) until 10 GB are free. A service that hangs
+  at shutdown is given 45 seconds instead of 90, as on Fedora.
 - **Updates:** nothing updates on its own. `update` checks the system,
   Flatpak apps, Homebrew tools and Neovim plugins, shows what would change,
   and applies it only when you say yes (see [Updates](#updates)).
@@ -707,6 +712,19 @@ services.flatpak.packages = [
   `uninstallUnmanaged = false` leaves apps you installed by hand (Bazaar,
   `flatpak install`) alone. Once every app you want is listed, set it to
   `true` to make the list authoritative; unlisted apps are then removed.
+- **Going back to an older version of an app.** Flatpak updates aren't
+  part of NixOS rollbacks, but Flatpak keeps its own history on Flathub.
+  If an update breaks an app (VLC here):
+
+  ```sh
+  flatpak remote-info --log flathub org.videolan.VLC  # its versions, newest first
+  flatpak update --commit=<commit> org.videolan.VLC   # install an older one
+  flatpak mask org.videolan.VLC                       # keep `update` from moving it
+  flatpak mask --remove org.videolan.VLC              # later, once it's fixed
+  ```
+
+  The app ID is in `flatpak list --app`. Apps are installed system-wide, so
+  these may ask for your password.
 - **KDE apps are Nix packages instead**; see [KDE apps](#kde-apps).
 - **Why Bazaar and not Discover:** Plasma normally installs Discover, its
   software center, but it's excluded here. Bazaar already covers browsing
@@ -914,7 +932,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v57** | Ready for NixOS 26.11: the journal size limit moved to a systemd drop-in file and Mullvad's setup adapts to either release, the two differences a first run against unstable found. CI now fails on evaluation warnings, and a weekly Next NixOS release workflow runs the checks against the upcoming release. New README section: Release upgrade. |
+| **v58** | Stability: disk-full protection (Nix frees unused store space when under 5 GB free during a build), a Memtest86+ boot-menu entry, and a 45-second shutdown timeout for stuck services instead of 90. README: how to roll back a Flatpak app. |
+| v57 | Ready for NixOS 26.11: the journal size limit moved to a systemd drop-in file and Mullvad's setup adapts to either release, the two differences a first run against unstable found. CI now fails on evaluation warnings, and a weekly Next NixOS release workflow runs the checks against the upcoming release. New README section: Release upgrade. |
 | v56 | Homebrew is down to yt-dlp, the one tool that needs its fast updates; gh, glab, ripgrep, fd, bat, jq, yq, television, dysk, trash-cli, tealdeer, shellcheck and stress-ng now come from Nix. The README's Homebrew section states the rule and what each tool source is for. On the laptop, `brew-update` offers to uninstall the moved tools: say yes. |
 | v55 | Steam Remote Play's firewall ports are closed (they were open on every network, public Wi-Fi included); only mDNS stays open. Set `remotePlay.openFirewall = true` in `modules/gaming.nix` to stream games. |
 | v54 | Fixes: `update` [s] puts the repo back after any failure or Ctrl+C before applying (it could leave `flake.lock` modified, blocking the next run); the installer can be re-run after an interrupted attempt (it left the encrypted disk unlocked, so formatting failed with "device in use") and accepts the disk name with or without `/dev/` when confirming. |
