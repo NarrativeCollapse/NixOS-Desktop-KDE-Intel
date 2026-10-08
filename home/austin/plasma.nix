@@ -68,6 +68,13 @@
     }
   '';
 
+  # Minimizing plays Magic Lamp, the macOS-style "genie" effect, instead of
+  # Plasma's default Squash: the window bends into a funnel and pours into
+  # its taskbar entry, and pours back out when restored. A KWin built-in
+  # (nothing extra installed); it applies from the next login. Maximize
+  # keeps KWin's default stretch animation. To go back, set "squash".
+  programs.plasma.kwin.effects.minimization.animation = "magiclamp";
+
   # Power profile follows the charger (power-profiles-daemon, switched by
   # Plasma's power management): balanced when plugged in, power saver on
   # battery for longer battery life. For more speed while plugged in (games,

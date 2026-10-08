@@ -81,6 +81,10 @@
             timeout=120,
         )
 
+    with subtest("Minimize uses Magic Lamp (plasma-manager)"):
+        machine.succeed("grep -qx 'magiclampEnabled=true' /home/austin/.config/kwinrc")
+        machine.succeed("grep -qx 'squashEnabled=false' /home/austin/.config/kwinrc")
+
     with subtest("The power profile follows the charger (plasma-manager)"):
         machine.wait_until_succeeds(
             "grep -qx 'PowerProfile=power-saver' /home/austin/.config/powerdevilrc",

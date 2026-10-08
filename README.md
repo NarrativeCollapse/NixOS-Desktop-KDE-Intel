@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v59** (git tag `v59`). See [Versions](#versions).
+**Current version: v60** (git tag `v60`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -45,7 +45,9 @@ Everything below is reference: read the part you need.
   system, with one set on the desktop, lock and login
   screens; Bluetooth via Plasma's BlueDevil; printing with automatic
   network-printer discovery (Avahi/mDNS); Noto + JetBrains Mono Nerd Font;
-  24-hour time throughout.
+  24-hour time throughout; minimized windows pour into the taskbar with
+  Magic Lamp, the macOS-style genie effect (see
+  [Plasma settings](#plasma-settings)).
   Plasma defaults nothing here uses are left out (see `modules/desktop.nix`):
   the Orca screen reader and text-to-speech, the KDE PIM backend (Akonadi),
   the X11 session, Elisa, the Help Center, the remote desktop server, the
@@ -292,7 +294,8 @@ linting because regenerating it would undo any changes.
 **The boot test** (`tests/boot.nix`) starts this exact configuration in a
 QEMU VM and checks that it reaches the desktop: NetworkManager, DNS,
 Mullvad, mDNS, oomd, the backup timer and Home Manager are running,
-Plasma logs in for austin, the taskbar script has run, and `update`,
+Plasma logs in for austin, the taskbar script has run, the Plasma settings
+(Magic Lamp, power profiles) are written, and `update`,
 `nixos-motd` and the other commands work, with the right version label.
 Only the VM's differences are overridden (no encrypted disk, automatic
 login, 4 GB of memory). Things a VM can't have aren't tested: Wi-Fi,
@@ -869,6 +872,20 @@ What it sets now:
   Plasma style for the panel and widgets.
 - **Wallpapers** for the desktop and lock screen (declared in
   `modules/desktop.nix`; see [Wallpapers](#wallpapers)).
+- **Magic Lamp when minimizing:** the window bends into a funnel and pours
+  into its taskbar entry, the "genie" effect from macOS, instead of
+  Plasma's default Squash (a plain shrink). Restoring plays it in reverse.
+  It's built into KWin, so nothing extra is installed; it applies from the
+  next login. Maximizing keeps KWin's default stretch animation. To go
+  back, set `kwin.effects.minimization.animation` to `"squash"` in
+  `plasma.nix`; for a slower genie, add
+  `kwin.effects.minimization.duration` (in milliseconds).
+
+  <img src="docs/screenshots/magic-lamp-v60.jpg" alt="Magic Lamp mid-animation: the Konsole window with the welcome banner, still full width at the top, narrows into a curved funnel that pours into the Konsole icon on the docked taskbar, over the gas-masks wallpaper" width="820">
+
+  <sub>A rendered mockup of one frame (about halfway through), not a
+  photo of the laptop. At normal speed the whole effect is over in well
+  under half a second.</sub>
 - **Konsole**: a profile named "NixOS" (Breeze colors, JetBrainsMono Nerd
   Font Mono 11), made Konsole's default.
 - **Taskbar tweaks.** Declaring the panel itself would replace your whole
@@ -1014,7 +1031,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v59** | The power profile follows the charger: power saver on battery, balanced on AC. README: a Quick start at the top, a "What protects what" table (each risk and what covers it), and a hardware checklist for what CI can't test. |
+| **v60** | Minimized windows pour into the taskbar with Magic Lamp, the macOS-style genie effect, instead of Squash (a KWin built-in, set through plasma-manager). The boot test checks the setting; README screenshot of the effect. |
+| v59 | The power profile follows the charger: power saver on battery, balanced on AC. README: a Quick start at the top, a "What protects what" table (each risk and what covers it), and a hardware checklist for what CI can't test. |
 | v58 | Stability: disk-full protection (Nix frees unused store space when under 5 GB free during a build), a Memtest86+ boot-menu entry, and a 45-second shutdown timeout for stuck services instead of 90. README: how to roll back a Flatpak app. |
 | v57 | Ready for NixOS 26.11: the journal size limit moved to a systemd drop-in file and Mullvad's setup adapts to either release, the two differences a first run against unstable found. CI now fails on evaluation warnings, and a weekly Next NixOS release workflow runs the checks against the upcoming release. New README section: Release upgrade. |
 | v56 | Homebrew is down to yt-dlp, the one tool that needs its fast updates; gh, glab, ripgrep, fd, bat, jq, yq, television, dysk, trash-cli, tealdeer, shellcheck and stress-ng now come from Nix. The README's Homebrew section states the rule and what each tool source is for. On the laptop, `brew-update` offers to uninstall the moved tools: say yes. |
