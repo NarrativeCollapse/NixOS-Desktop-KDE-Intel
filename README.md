@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v60** (git tag `v60`). See [Versions](#versions).
+**Current version: v61** (git tag `v61`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
 
@@ -38,7 +38,8 @@ Everything below is reference: read the part you need.
 
 - **Desktop:** Plasma 6 on SDDM, Wayland only (X11 apps run through
   Xwayland), in Breeze Dark; PipeWire; declarative Flatpak apps from Flathub
-  (Chrome, VLC, Flatseal, qBittorrent, Bazaar); KCalc, ISO Image Writer,
+  (Chrome, VLC, Flatseal, qBittorrent, Bazaar, Telegram, ZapZap for
+  WhatsApp); KCalc, ISO Image Writer,
   Filelight and Partition Manager added to Plasma's own apps (as Nix
   packages; see [KDE apps](#kde-apps)); Plasma/Konsole
   settings in the config (plasma-manager); extra wallpapers built into the
@@ -785,8 +786,10 @@ services.flatpak.packages = [
 - Nothing updates automatically: `update` ([f]) runs `flatpak update` for
   listed and hand-installed apps alike, and asks first.
 - Listed now: Google Chrome, VLC, Flatseal (manages Flatpak app
-  permissions), qBittorrent and Bazaar (a Flathub app store, as on Bazzite
-  and Bluefin).
+  permissions), qBittorrent, Bazaar (a Flathub app store, as on Bazzite
+  and Bluefin), Telegram, and ZapZap (WhatsApp; an unofficial desktop
+  client around WhatsApp Web, since WhatsApp has no Linux app: link it by
+  scanning its QR code with WhatsApp on your phone).
 - Removing an app from the list uninstalls it at the next rebuild.
   `uninstallUnmanaged = false` leaves apps you installed by hand (Bazaar,
   `flatpak install`) alone. Once every app you want is listed, set it to
@@ -1031,7 +1034,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v60** | Minimized windows pour into the taskbar with Magic Lamp, the macOS-style genie effect, instead of Squash (a KWin built-in, set through plasma-manager). The boot test checks the setting; README screenshot of the effect. |
+| **v61** | Telegram and ZapZap (WhatsApp) added as Flatpaks from Flathub. |
+| v60 | Minimized windows pour into the taskbar with Magic Lamp, the macOS-style genie effect, instead of Squash (a KWin built-in, set through plasma-manager). The boot test checks the setting; README screenshot of the effect. |
 | v59 | The power profile follows the charger: power saver on battery, balanced on AC. README: a Quick start at the top, a "What protects what" table (each risk and what covers it), and a hardware checklist for what CI can't test. |
 | v58 | Stability: disk-full protection (Nix frees unused store space when under 5 GB free during a build), a Memtest86+ boot-menu entry, and a 45-second shutdown timeout for stuck services instead of 90. README: how to roll back a Flatpak app. |
 | v57 | Ready for NixOS 26.11: the journal size limit moved to a systemd drop-in file and Mullvad's setup adapts to either release, the two differences a first run against unstable found. CI now fails on evaluation warnings, and a weekly Next NixOS release workflow runs the checks against the upcoming release. New README section: Release upgrade. |

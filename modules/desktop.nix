@@ -100,6 +100,8 @@ in
       "com.github.tchx84.Flatseal" # manage Flatpak app permissions
       "org.qbittorrent.qBittorrent"
       "io.github.kolunmi.Bazaar" # Flathub app store (as on Bazzite/Bluefin)
+      "org.telegram.desktop" # Telegram
+      "com.rtosta.zapzap" # ZapZap: WhatsApp (an unofficial desktop client)
     ];
     # Leave apps installed by hand (Bazaar, `flatpak install`) alone. Set to
     # true once everything you want is listed above to make this list the
