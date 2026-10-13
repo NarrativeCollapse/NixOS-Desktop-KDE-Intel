@@ -25,7 +25,7 @@ row = f"| **v{new}** | `flake.lock` update: {', '.join(inputs) or 'inputs'}. |"
 
 lines = readme.read_text().splitlines(keepends=True)
 out = []
-for i, line in enumerate(lines):
+for line in lines:
     if line.startswith(f"**Current version: v{cur}**"):
         line = line.replace(f"v{cur}", f"v{new}")
     elif line.startswith(f"| **v{cur}** |"):

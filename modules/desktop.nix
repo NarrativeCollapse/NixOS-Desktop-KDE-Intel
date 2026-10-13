@@ -71,7 +71,8 @@ in
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
-    jack.enable = true;
+    # JACK (for pro-audio apps) is off; nothing here uses it. Set
+    # jack.enable = true if you add one, such as Ardour or Carla.
   };
 
   ################################
@@ -160,13 +161,6 @@ in
   #   and calendar apps (none installed) and the clock's calendar-events
   #   plugin use.
   programs.kde-pim.enable = false;
-
-  ################################
-  # Environment variables
-  ################################
-
-  # Prefer Wayland-native behavior for Electron/Chromium apps.
-  environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
   ################################
   # Fonts

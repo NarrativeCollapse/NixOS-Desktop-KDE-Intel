@@ -98,15 +98,8 @@
     };
   };
 
-  ###############################
-  # CLI tools & env
-  ###############################
-
-  # Standalone CLI tools (jq, gh, ripgrep, ...) are in bling.nix. For a
-  # process monitor, Plasma's System Monitor (Ctrl+Esc for its process list)
-  # is built in.
-  # MangoHud and its config are in modules/gaming.nix, with Steam; the
-  # Wayland clipboard tool is on Neovim's PATH (neovim.nix).
-
-  home.sessionVariables.PAGER = "less";
+  # Command-line tools are in bling.nix (standalone tools like jq, gh and
+  # ripgrep) and neovim.nix; MangoHud is in modules/gaming.nix, with Steam.
+  # For a process monitor, Plasma's System Monitor (Ctrl+Esc for its process
+  # list) is built in. (PAGER is less, NixOS's default.)
 }

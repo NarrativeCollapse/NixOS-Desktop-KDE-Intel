@@ -4,9 +4,9 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v61** (git tag `v61`). See [Versions](#versions).
+**Current version: v62** (git tag `v62`). See [Versions](#versions).
 
-<img src="docs/screenshots/desktop-v50.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 29 Sept 2026" width="820">
+<img src="docs/screenshots/desktop-v62.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner with the NixOS logo beside it, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 13 Oct 2026" width="820">
 
 <sub>An example of the desktop this config sets up: Breeze Dark, the default
 wallpaper, the welcome banner in Konsole, the white NixOS snowflake as the
@@ -22,8 +22,8 @@ taskbar icons, tray and exact layout may differ.</sub>
    shitbox**. On a laptop already running NixOS: [clone and
    rebuild](#install).
 2. **Set up backups once:** `backup-setup` (with the USB backup drive
-   plugged in), then `backup-test`. Until then nothing is backed up. See
-   [Backups](#backups).
+   plugged in), then `backup-test`. Until then nothing is backed up. After
+   that, plugging in the drive is all it takes. See [Backups](#backups).
 3. **Check the hardware:** go through the
    [hardware checklist](#hardware-checklist) (10 minutes).
 4. **Day to day:** `update` checks for updates and asks before applying
@@ -64,7 +64,9 @@ Everything below is reference: read the part you need.
   (see [Failure alerts](#failure-alerts)), and Intel VA-API/QSV drivers so
   video decodes on the GPU. Closing the lid suspends on battery and does
   nothing on AC. A Memtest86+ entry at the bottom of the boot menu tests
-  the RAM, the first suspect when crashes look random.
+  the RAM, the first suspect when crashes look random. External drives
+  formatted NTFS (Windows) or exFAT (cameras, phones, most flash drives)
+  mount read-write, and Partition Manager can format and repair them.
 - **Network & security:** NetworkManager with systemd-resolved, Mullvad VPN
   (official module), firewall on with only mDNS (UDP 5353, for printer
   discovery) open, and hardening sysctls for
@@ -103,7 +105,7 @@ isn't in the table, nothing covers it yet.
 | Risk | Covered by | Where |
 | --- | --- | --- |
 | Laptop lost or stolen | Full-disk encryption (LUKS2); the boot-menu editor is locked, so nobody can boot a root shell from it | `hosts/shitbox/`, `modules/hardware.nix` |
-| Losing your files (dead SSD, deletion, theft) | Daily restic backups of `/home` to a USB drive, with a warning when they go stale; smartd warns when the SSD starts failing | `modules/backup.nix`, `modules/hardware.nix` |
+| Losing your files (dead SSD, deletion, theft) | Restic backups of `/home` to a USB drive, as soon as it's plugged in and daily while it stays connected, with a warning when they go stale; smartd warns when the SSD starts failing | `modules/backup.nix`, `modules/hardware.nix` |
 | A bad update | Updates only when you choose, with a preview; the last 10 versions stay in the boot menu to go back to; CI builds and boot-tests every change first | [Updates](#updates), [CI](#ci) |
 | The system breaking with no update (crash, full disk) | oomd closes a runaway app before the desktop freezes; Nix frees store space when the disk runs low; capped journal; Memtest86+ for suspect RAM | `modules/hardware.nix`, `modules/base.nix` |
 | A tampered or changed package | Every input pinned in `flake.lock` by hash; packages come from the signed NixOS binary cache | `flake.lock` |
@@ -246,7 +248,9 @@ the boot menu on HP laptops).
    config in `/home/austin/nixos-config`: the latest from GitHub, or the
    copy from the USB stick if GitHub can't be reached. The new hardware
    configuration is committed there (push it after logging in to GitHub on
-   the laptop: `cd ~/nixos-config && git push`).
+   the laptop: `cd ~/nixos-config && git push`). The generic files
+   `nixos-generate-config` leaves in `/etc/nixos` are removed, since the
+   system is built from `~/nixos-config`.
 6. Installs the system with `nixos-install --flake`.
 7. Asks for austin's login password, then offers to reboot.
 
@@ -298,8 +302,10 @@ Mullvad, mDNS, oomd, the backup timer and Home Manager are running,
 Plasma logs in for austin, the taskbar script has run, the Plasma settings
 (Magic Lamp, power profiles) are written, and `update`,
 `nixos-motd` and the other commands work, with the right version label.
-Only the VM's differences are overridden (no encrypted disk, automatic
-login, 4 GB of memory). Things a VM can't have aren't tested: Wi-Fi,
+It also plugs in a blank virtual disk as the backup drive and checks that
+a real backup of `/home/austin` runs by itself, and formats another as NTFS
+and exFAT and writes to each. Only the VM's differences are overridden (no
+encrypted disk, automatic login, 4 GB of memory, the two blank disks). Things a VM can't have aren't tested: Wi-Fi,
 Bluetooth, SMART disk data, firmware updates and anything needing the
 internet. Run it alone with `nix build .#checks.x86_64-linux.boot -L`, or
 watch the VM with `nix run .#checks.x86_64-linux.boot.driverInteractive`
@@ -452,6 +458,8 @@ or graphics. It takes about 10 minutes.
 - [ ] **Steam:** a game starts (with Proton for a Windows game), and
       `steam-hud` shows the MangoHud overlay.
 - [ ] **Printing:** the network printer appears on its own.
+- [ ] **External drives:** a USB stick formatted on Windows (NTFS) or a
+      camera's SD card (exFAT) opens in Dolphin and takes a new file.
 - [ ] **Health:** `disk-health` shows PASSED, and
       `systemctl --failed` lists nothing.
 
@@ -654,11 +662,14 @@ explains each one:
 3. **The first backup.** It mounts the drive at `/mnt/backup` and, if you
    say yes, runs the first backup and lists the snapshot.
 
-After that, the daily job runs whenever the drive is plugged in and mounted.
-The drive mounts at boot when it's plugged in; boot carries on normally
-without it (`nofail`). After plugging it in later: `sudo mount /mnt/backup`.
-Until setup is done, the job skips quietly (and the warning below reminds
-you).
+**After that, plugging in the drive is all it takes.** It mounts at
+`/mnt/backup` and a backup starts straight away; when it has finished (and
+passed its check), a desktop notification says you can unplug the drive.
+Eject it first in the taskbar's Disks & Devices popup. While the drive stays
+plugged in, the backup also runs daily. Boot carries on normally without the
+drive (`nofail`). Until setup is done, plugging it in does nothing (and the
+warning below reminds you). If the drive is ever plugged in but not mounted:
+`sudo mount /mnt/backup`.
 
 Check and restore (as root, since the password file is root-only):
 
@@ -684,8 +695,8 @@ sudo restic-home restore latest --target /tmp/restore --include /home/austin/Doc
 USB drive somewhere else (work, a relative's). With the first drive
 unplugged, plug in the second and run `backup-setup`: it keeps the existing
 password and formats the new drive as `BACKUP` too. Swap them every week or
-two; each drive holds its own full backup history, and the daily job backs
-up to whichever one is plugged in. Fire, theft or a dead drive then costs
+two; each drive holds its own full backup history, and plugging either one
+in backs up to it. Fire, theft or a dead drive then costs
 you at most a couple of weeks, not everything.
 
 For a cloud or server target instead of a drive, set `repository =
@@ -694,7 +705,7 @@ For a cloud or server target instead of a drive, set `repository =
 
 ### Stale-backup warning
 
-Because the job skips silently whenever the drive isn't mounted, a desktop
+Because the daily job skips silently whenever the drive isn't mounted, a desktop
 notification warns you instead: shortly after login and once a day, if the
 last successful backup is more than 7 days old, or if there has never been
 one (then it tells you to run `backup-setup`). Each fully
@@ -950,7 +961,8 @@ desktop. It has two parts:
 - `notify-desktop`, the one place that sends a critical notification into
   your Plasma session from a background service (skipped if you're not
   logged in). Other modules call it as `lib.getExe config.my.notifyDesktop`;
-  smartd's disk warnings below use it.
+  smartd's disk warnings below use it, and so does the "Backup finished"
+  message after plugging in the backup drive.
 - `notify-failure@`, which a service attaches with
   `onFailure = [ "notify-failure@%n.service" ];` to raise a notification
   when it fails, with the `journalctl` command that shows why. The backup
@@ -1034,7 +1046,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v61** | Telegram and ZapZap (WhatsApp) added as Flatpaks from Flathub. |
+| **v62** | Plugging in the backup drive mounts it and backs up straight away, then says when it's safe to unplug. NTFS and exFAT tools (format and repair in Partition Manager). Removed settings that did nothing (PAGER, the Electron Wayland flag, JACK). The installer removes the unused `/etc/nixos` files; `update` protects its build from cleanup; the boot test runs a real backup and writes NTFS and exFAT drives. New desktop screenshot. |
+| v61 | Telegram and ZapZap (WhatsApp) added as Flatpaks from Flathub. |
 | v60 | Minimized windows pour into the taskbar with Magic Lamp, the macOS-style genie effect, instead of Squash (a KWin built-in, set through plasma-manager). The boot test checks the setting; README screenshot of the effect. |
 | v59 | The power profile follows the charger: power saver on battery, balanced on AC. README: a Quick start at the top, a "What protects what" table (each risk and what covers it), and a hardware checklist for what CI can't test. |
 | v58 | Stability: disk-full protection (Nix frees unused store space when under 5 GB free during a build), a Memtest86+ boot-menu entry, and a 45-second shutdown timeout for stuck services instead of 90. README: how to roll back a Flatpak app. |

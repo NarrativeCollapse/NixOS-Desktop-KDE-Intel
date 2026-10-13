@@ -42,6 +42,19 @@
       virtualisation = {
         memorySize = 4096;
         cores = 2;
+        # - Two blank disks standing in for USB drives: /dev/vdb for the
+        #   backup drive, /dev/vdc for NTFS and exFAT.
+        emptyDiskImages = [
+          64
+          64
+        ];
+        # - The VM replaces the config's file systems with its own, so the
+        #   backup drive's mount is repeated here, as in backup.nix.
+        fileSystems."/mnt/backup" = {
+          device = "/dev/disk/by-label/BACKUP";
+          fsType = "ext4";
+          options = [ "nofail" ];
+        };
       };
     };
 
@@ -93,9 +106,10 @@
 
     with subtest("The config's commands are installed and run"):
         machine.succeed(
-            "su - austin -c 'command -v update update-system update-rollback"
-            " update-neovim backup-setup backup-test brew-update disk-health"
-            " nixos-motd boxbuddy-rs'"
+            "su - austin -c 'command -v update update-system update-flatpak"
+            " update-firmware update-rollback update-neovim backup-setup"
+            " backup-test brew-update disk-health nixos-motd toggle-motd"
+            " boxbuddy-rs'"
         )
         # The standalone CLI tools come from Nix (bling.nix), not Homebrew.
         machine.succeed(
@@ -135,6 +149,31 @@
             "systemctl --user --machine=austin@.host show -p DefaultTimeoutStopUSec"
         )
         assert user_stop.strip() == "DefaultTimeoutStopUSec=45s", user_stop
+
+    with subtest("Plugging in the backup drive backs up /home (backup-on-plug)"):
+        # Set up the password and format the drive as backup-setup does,
+        # then "plug it in" (formatting alone doesn't start a backup).
+        machine.succeed(
+            "install -d -m 700 /etc/secrets"
+            " && echo test-password > /etc/secrets/restic-password"
+            " && chmod 600 /etc/secrets/restic-password"
+        )
+        machine.succeed("mkfs.ext4 -q -L BACKUP /dev/vdb && udevadm settle")
+        machine.fail("test -e /var/lib/restic-home-last-success")
+        machine.succeed("udevadm trigger --action=add /dev/vdb")
+        machine.wait_until_succeeds("test -e /var/lib/restic-home-last-success", timeout=300)
+        machine.succeed("mountpoint -q /mnt/backup")
+        snapshots = machine.succeed("restic-home snapshots")
+        assert "/home/austin" in snapshots, snapshots
+
+    with subtest("NTFS and exFAT drives can be formatted and written"):
+        machine.succeed("command -v mkfs.ntfs ntfsfix mkfs.exfat fsck.exfat")
+        for fstype, mkfs in [("ntfs3", "mkfs.ntfs -Q -F"), ("exfat", "mkfs.exfat")]:
+            machine.succeed(f"{mkfs} /dev/vdc")
+            machine.succeed(
+                f"mkdir -p /mnt/usb && mount -t {fstype} /dev/vdc /mnt/usb"
+                " && echo written > /mnt/usb/file && umount /mnt/usb"
+            )
 
     with subtest("sudo is sudo-rs"):
         sudo_version = machine.succeed("sudo --version")

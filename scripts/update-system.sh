@@ -26,10 +26,11 @@ undo() {
   git reset --quiet --soft HEAD~1
   git restore --staged --worktree -- "${files[@]}"
 }
-log=$(mktemp)
+work=$(mktemp -d)
+log=$work/update.log
 phase=updating
 cleanup() {
-  rm -f "$log"
+  rm -rf "$work"
   case $phase in
     updating) git restore --staged --worktree -- "${files[@]}" 2>/dev/null || true ;;
     committed) undo ;;
@@ -57,7 +58,9 @@ git commit --quiet -m "chore: update flake.lock ($version)" -- "${files[@]}"
 phase=committed
 
 echo "Building $version (nothing on the system changes yet)..."
-if ! new=$(nix build --no-link --print-out-paths "$CONFIG_FLAKE#nixosConfigurations.$CONFIG_HOST.config.system.build.toplevel"); then
+# The link in $work keeps the build from being deleted by Nix's cleanup
+# (min-free, base.nix) before it's applied.
+if ! new=$(nix build --out-link "$work/system" --print-out-paths "$CONFIG_FLAKE#nixosConfigurations.$CONFIG_HOST.config.system.build.toplevel"); then
   echo "The build failed, so nothing was applied. flake.lock is back where it was."
   exit 1
 fi

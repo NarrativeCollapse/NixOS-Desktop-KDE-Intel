@@ -1,4 +1,9 @@
-{ config, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   # What's backed up: austin's home folder.
@@ -20,6 +25,10 @@ in
   # machine; losing it makes the backups unreadable forever), formats a USB
   # drive partition as ext4 labelled BACKUP, mounts it at /mnt/backup, and
   # runs the first backup. Until then the job skips silently.
+  #
+  # After that, plugging in the drive is all it takes: it mounts and backs
+  # up straight away (backup-on-plug, below), and the daily run covers a
+  # drive that's left plugged in.
   #
   # For a remote target instead, change `repository` to e.g.
   # "sftp:austin@myserver:/srv/restic-shitbox" and remove the
@@ -104,6 +113,36 @@ in
     onFailure = [ "notify-failure@%n.service" ];
   };
 
+  # Plugging in the backup drive backs up straight away. udev starts
+  # backup-on-plug when a partition labelled BACKUP appears; that mounts
+  # /mnt/backup, runs the backup, and when it succeeded says on the desktop
+  # that the drive can be unplugged. (Formatting the drive in backup-setup
+  # doesn't count as plugging it in, so setup isn't interrupted.)
+  services.udev.extraRules = ''
+    ACTION=="add", SUBSYSTEM=="block", ENV{ID_FS_LABEL}=="BACKUP", TAG+="systemd", ENV{SYSTEMD_WANTS}+="backup-on-plug.service"
+  '';
+  systemd.services.backup-on-plug = {
+    description = "Back up /home when the backup drive is plugged in";
+    requires = [ "mnt-backup.mount" ];
+    after = [ "mnt-backup.mount" ];
+    serviceConfig.Type = "oneshot";
+    path = [
+      pkgs.coreutils
+      pkgs.systemd
+    ];
+    # The success stamp moves only when a backup really ran and passed (not
+    # when the job skipped because setup isn't done yet).
+    script = ''
+      before=$(stat -c %Y ${stamp} 2>/dev/null || echo 0)
+      systemctl start restic-backups-home.service
+      after=$(stat -c %Y ${stamp} 2>/dev/null || echo 0)
+      if [ "$after" != "$before" ]; then
+        ${lib.getExe config.my.notifyDesktop} Backups drive-harddisk "Backup finished" \
+          "You can unplug the backup drive: eject it in Disks & Devices first."
+      fi
+    '';
+  };
+
   # Because the job skips silently, it could stop running for months unseen.
   # Once a day (and shortly after login) warn on the desktop when the last
   # successful backup is missing or older than `staleDays`.
@@ -118,7 +157,7 @@ in
       if [ -e ${stamp} ]; then
         age_days=$(( ($(date +%s) - $(stat -c %Y ${stamp})) / 86400 ))
         [ "$age_days" -lt ${toString staleDays} ] && exit 0
-        msg="The last successful backup of /home was $age_days days ago. Plug in the backup drive and run: sudo mount /mnt/backup"
+        msg="The last successful backup of /home was $age_days days ago. Plug in the backup drive: the backup starts by itself."
       else
         msg="/home has never been backed up. Open a terminal and run: backup-setup"
       fi
@@ -174,8 +213,9 @@ in
 
   # External backup drive: the partition labelled BACKUP (backup-setup
   # formats and labels one). `nofail` means boot proceeds normally when the
-  # drive is absent (it mounts at boot only if plugged in; plug in later and
-  # run `sudo mount /mnt/backup`). Deliberately NOT using x-systemd.automount:
+  # drive is absent; plugged in later, backup-on-plug mounts it. (If the
+  # drive is ever plugged in but not mounted: `sudo mount /mnt/backup`.)
+  # Deliberately NOT using x-systemd.automount:
   # an autofs mountpoint would satisfy ConditionPathIsMountPoint even with no
   # drive present, turning the safe skip into a failure.
   fileSystems."/mnt/backup" = {

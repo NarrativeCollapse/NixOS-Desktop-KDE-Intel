@@ -74,7 +74,7 @@ if ! mountpoint -q /mnt/backup; then
   sudo mount /mnt/backup
 fi
 if ! confirm "Run the first backup now? It can take a while."; then
-  echo "Setup is done. The daily backup runs whenever the drive is mounted."
+  echo "Setup is done. Plugging in the drive backs up straight away (and daily while it stays plugged in)."
   exit 0
 fi
 if ! sudo systemctl start restic-backups-home; then
@@ -83,5 +83,6 @@ if ! sudo systemctl start restic-backups-home; then
 fi
 sudo restic-home snapshots
 echo
-echo "Backups are set up. They run daily while the drive is mounted at /mnt/backup;"
-echo "after plugging it in later, mount it with: sudo mount /mnt/backup"
+echo "Backups are set up. From now on, plugging in the drive backs up straight away"
+echo "(a desktop notification says when it's done); while it stays plugged in, the"
+echo "backup also runs daily."

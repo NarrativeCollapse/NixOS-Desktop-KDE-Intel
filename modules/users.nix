@@ -50,9 +50,10 @@
   ################################
 
   # Kept lean: only what's genuinely system-wide. Desktop apps are in
-  # desktop.nix (except BoxBuddy, which belongs with distrobox), per-user tools and editor config in Home Manager
-  # (home/austin/), yt-dlp in the Brewfile, and apps that come
-  # with a module (podman, mullvad) aren't repeated here.
+  # desktop.nix (except BoxBuddy, which belongs with distrobox), per-user
+  # tools and editor config in Home Manager (home/austin/), yt-dlp in the
+  # Brewfile, and apps that come with a module (podman, mullvad) aren't
+  # repeated here.
   environment.systemPackages = with pkgs; [
     # Containers
     podman-compose

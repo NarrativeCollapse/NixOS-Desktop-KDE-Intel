@@ -114,6 +114,10 @@ if [ "$cloned" -eq 0 ]; then
   git -C "$dest" remote add origin "$REPO_URL"
 fi
 cp /mnt/etc/nixos/hardware-configuration.nix "$dest/hosts/shitbox/hardware-configuration.nix"
+# nixos-generate-config also wrote a generic configuration.nix. The system
+# is built from ~/nixos-config, so remove both rather than leave files
+# that look like they matter.
+rm -f /mnt/etc/nixos/configuration.nix /mnt/etc/nixos/hardware-configuration.nix
 git -C "$dest" add -A
 git -C "$dest" -c user.name="install-shitbox" -c user.email="install-shitbox@localhost" \
   commit --quiet -m "hosts/shitbox: hardware configuration for this install"

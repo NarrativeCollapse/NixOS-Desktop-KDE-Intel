@@ -29,16 +29,16 @@ in
       # encrypted either way, but locking the editor closes an easy local
       # tampering vector on a laptop that leaves the house.
       editor = false;
+      # A Memtest86+ entry at the bottom of the boot menu. Faulty RAM causes
+      # random crashes that look like software bugs; a pass or two (leave it
+      # running for an hour or more) rules it out. Esc leaves it.
+      memtest86.enable = true;
     };
     efi.canTouchEfiVariables = true;
     grub.enable = false;
     # Shorter menu wait on a laptop you boot often.
     timeout = 3;
   };
-  # A Memtest86+ entry at the bottom of the boot menu. Faulty RAM causes
-  # random crashes that look like software bugs; a pass or two (leave it
-  # running for an hour or more) rules it out. Esc leaves it.
-  boot.loader.systemd-boot.memtest86.enable = true;
 
   boot.initrd.systemd.enable = true;
 
@@ -144,6 +144,23 @@ in
         done
       '';
     })
+  ];
+
+  ################################
+  # External drives: NTFS and exFAT
+  ################################
+
+  # USB drives and SD cards formatted on Windows (NTFS) or for cameras and
+  # phones (exFAT) already mount read-write: the kernel has both drivers,
+  # and Plasma's mounting service uses the kernel's ntfs3. This adds their
+  # tools, so Partition Manager can format drives as NTFS or exFAT, and
+  # there are repair tools: `sudo ntfsfix -d /dev/sdX1` clears the "dirty"
+  # mark Windows leaves on a drive it didn't shut down cleanly (Fast
+  # Startup), which can stop it mounting; `sudo fsck.exfat /dev/sdX1`
+  # checks an exFAT one.
+  boot.supportedFilesystems = [
+    "ntfs"
+    "exfat"
   ];
 
   ################################

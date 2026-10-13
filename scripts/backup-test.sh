@@ -11,7 +11,7 @@ case $dir in
     ;;
 esac
 if ! mountpoint -q /mnt/backup; then
-  echo "The backup drive isn't mounted. Plug it in and run: sudo mount /mnt/backup"
+  echo "The backup drive isn't mounted. Plug it in (it mounts by itself), or run: sudo mount /mnt/backup"
   exit 1
 fi
 
