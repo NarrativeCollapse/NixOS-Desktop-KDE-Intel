@@ -34,6 +34,7 @@ in
     ../../modules/homebrew.nix
     ../../modules/notifications.nix
     ../../modules/updates.nix
+    ../../modules/smartcard.nix
   ];
 
   networking.hostName = "shitbox";

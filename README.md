@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v62** (git tag `v62`). See [Versions](#versions).
+**Current version: v63** (git tag `v63`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v62.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner with the NixOS logo beside it, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 13 Oct 2026" width="820">
 
@@ -74,7 +74,8 @@ Everything below is reference: read the part you need.
   a memory-safe rewrite (Ubuntu 26.04 LTS's default): the same command,
   remembering your password for 15 minutes. Typing the password shows a
   `*` per key; `sudo -E` isn't supported. Shell shortcuts like `sudo !!`
-  work as before (zsh expands them).
+  work as before (zsh expands them). CAC smart cards work in LibreWolf
+  with a USB reader (see [Smart cards (CAC)](#smart-cards-cac)).
 - **Gaming:** Steam with a gamescope session and Proton-GE available as a
   compatibility tool, GameMode, MangoHud, and xpadneo for Xbox controllers
   over Bluetooth.
@@ -157,6 +158,7 @@ modules/
   homebrew.nix                   Homebrew PATH, completions, `brew-update`
   notifications.nix              `notify-desktop` + `notify-failure@`: desktop alerts from services
   updates.nix                    `update` menu: system, Flatpak, Homebrew, Neovim, firmware
+  smartcard.nix                  CAC readers: pcscd, OpenSC in LibreWolf, `cac-setup`
 home/austin/home.nix             zsh, starship, git
 home/austin/bling.nix            Bazzite-style MOTD, fastfetch, CLI tools + aliases
 home/austin/plasma.nix           Plasma/KDE settings via plasma-manager (Konsole profile)
@@ -168,6 +170,7 @@ scripts/                         the longer shell scripts, as plain bash (see be
   update.sh, update-system.sh    the `update` menu and its [s] System part
   update-neovim.sh               [n] Neovim plugins
   backup-setup.sh, backup-test.sh
+  cac-setup.sh                   imports the DoD certificates into LibreWolf
   brew-update.sh                 [b] Homebrew
   install-shitbox.sh             the installer ISO's installer
   nixos-motd.sh                  the welcome banner
@@ -287,6 +290,7 @@ Then restore your files from the backup drive (see [Backups](#backups)).
 | Run a game with Proton-GE | In Steam: right-click the game → Properties → Compatibility → tick "Force the use of…" → pick **GE-Proton** |
 | See boot messages behind the splash | Press **Esc** during boot |
 | Check the SSD's health | `disk-health` (sudo password) |
+| Use a CAC (one-time setup) | `cac-setup`; see [Smart cards (CAC)](#smart-cards-cac) |
 | Which commit is running? | `nixos-version --configuration-revision` |
 | Which config version is running? | Shown in the welcome banner, `fastfetch`, and the boot menu entry (e.g. `v25-26.05…`) |
 
@@ -460,6 +464,9 @@ or graphics. It takes about 10 minutes.
 - [ ] **Printing:** the network printer appears on its own.
 - [ ] **External drives:** a USB stick formatted on Windows (NTFS) or a
       camera's SD card (exFAT) opens in Dolphin and takes a new file.
+- [ ] **CAC reader** (if you use one): `pcsc_scan` shows the reader and
+      reacts when the card goes in, and a CAC site in LibreWolf asks for
+      the PIN.
 - [ ] **Health:** `disk-health` shows PASSED, and
       `systemctl --failed` lists nothing.
 
@@ -720,6 +727,53 @@ A run that does start but fails (full drive, wrong password, corrupt
 repository) also raises a critical notification right away, naming the
 command to see the logs (`journalctl -u restic-backups-home`). See
 [Failure alerts](#failure-alerts).
+
+## Smart cards (CAC)
+
+For DoD sites that sign in with a Common Access Card (CAC), or another PIV
+smart card. Set up in `modules/smartcard.nix`.
+
+**You need a USB smart-card reader** labelled **CCID-compliant**: Linux
+supports those with no extra driver. Avoid readers that say they need their
+own driver. Long-standing safe picks are the Identiv SCR3310 and uTrust
+2700 R, and the HID Omnikey 3021 and 3121. The laptop has both USB-A and
+USB-C ports, so either plug type works.
+
+**What's set up:**
+
+- **pcscd**, the smart-card service that talks to the reader (with the
+  standard CCID driver). It starts on its own when an app asks for a reader.
+- **OpenSC**, which reads the certificates on the card. LibreWolf loads it
+  automatically (a browser policy), so a site that asks for a certificate
+  offers the card's and asks for its PIN.
+- **`cac-setup`**, which imports the DoD's certificate authorities into
+  LibreWolf, so DoD sites are trusted. They're trusted in LibreWolf only,
+  not by the rest of the system.
+
+**One-time setup:**
+
+1. Open LibreWolf once and close it (that creates its profile).
+2. Run `cac-setup`. It downloads the current DoD certificate bundle from
+   DISA and imports it. DISA renames the bundle with each new version, so
+   if the download fails: on the
+   [DoD PKI tools page](https://public.cyber.mil/pki-pke/tools-configuration-files/)
+   download **"PKI CA Certificate Bundles: PKCS#7 for DoD PKI Only"**, then
+   run `cac-setup ~/Downloads/<the zip file>`.
+3. Restart LibreWolf, plug in the reader and insert the card. `pcsc_scan`
+   shows the reader and reacts to the card (Ctrl+C stops it), and
+   `pkcs11-tool --list-slots` lists the card. Then open the site in
+   LibreWolf and enter the PIN when asked.
+
+Run `cac-setup` again if a DoD site that used to work starts showing a
+certificate warning: DISA occasionally adds new certificate authorities.
+
+**Limits:**
+
+- **Use LibreWolf for CAC sites.** Chrome is a Flatpak, and its sandbox
+  can't reach the reader or OpenSC without extra plumbing that tends to
+  break.
+- A few DoD sites only support Chrome or Edge on Windows. That's the site,
+  not this setup.
 
 ## Homebrew
 
@@ -1046,7 +1100,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v62** | Plugging in the backup drive mounts it and backs up straight away, then says when it's safe to unplug. NTFS and exFAT tools (format and repair in Partition Manager). Removed settings that did nothing (PAGER, the Electron Wayland flag, JACK). The installer removes the unused `/etc/nixos` files; `update` protects its build from cleanup; the boot test runs a real backup and writes NTFS and exFAT drives. New desktop screenshot. |
+| **v63** | CAC smart cards: pcscd for USB readers, OpenSC loaded into LibreWolf by policy, and `cac-setup` to import the DoD certificates into LibreWolf (downloaded from DISA on the laptop). New README section, hardware-checklist item and boot-test checks. |
+| v62 | Plugging in the backup drive mounts it and backs up straight away, then says when it's safe to unplug. NTFS and exFAT tools (format and repair in Partition Manager). Removed settings that did nothing (PAGER, the Electron Wayland flag, JACK). The installer removes the unused `/etc/nixos` files; `update` protects its build from cleanup; the boot test runs a real backup and writes NTFS and exFAT drives. New desktop screenshot. |
 | v61 | Telegram and ZapZap (WhatsApp) added as Flatpaks from Flathub. |
 | v60 | Minimized windows pour into the taskbar with Magic Lamp, the macOS-style genie effect, instead of Squash (a KWin built-in, set through plasma-manager). The boot test checks the setting; README screenshot of the effect. |
 | v59 | The power profile follows the charger: power saver on battery, balanced on AC. README: a Quick start at the top, a "What protects what" table (each risk and what covers it), and a hardware checklist for what CI can't test. |

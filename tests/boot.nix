@@ -175,6 +175,17 @@
                 " && echo written > /mnt/usb/file && umount /mnt/usb"
             )
 
+    with subtest("Smart cards: pcscd, OpenSC, cac-setup and LibreWolf's CAC module"):
+        machine.succeed("systemctl is-active pcscd.socket")
+        machine.succeed("su - austin -c 'command -v cac-setup pcsc_scan pkcs11-tool'")
+        # OpenSC loads (with no reader it reports no slots and exits 1).
+        info = machine.execute("su - austin -c 'pkcs11-tool --show-info' 2>&1")[1]
+        assert "OpenSC Project" in info, info
+        # LibreWolf's built-in policies load OpenSC.
+        wrapper = machine.succeed("readlink -f /run/current-system/sw/bin/librewolf").strip()
+        policies = wrapper.rsplit("/bin/", 1)[0] + "/lib/librewolf/distribution/policies.json"
+        machine.succeed(f"grep -q opensc-pkcs11.so {policies}")
+
     with subtest("sudo is sudo-rs"):
         sudo_version = machine.succeed("sudo --version")
         assert "sudo-rs" in sudo_version, sudo_version
