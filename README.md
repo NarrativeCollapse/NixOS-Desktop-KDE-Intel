@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v64** (git tag `v64`). See [Versions](#versions).
+**Current version: v65** (git tag `v65`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v62.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner with the NixOS logo beside it, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 13 Oct 2026" width="820">
 
@@ -1149,7 +1149,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v64** | A reminder once the system's packages are more than 14 days old: a notification says to run `update` (or to restart, if an update is waiting for one); it installs nothing. CI: a failing Check on `main` or Next NixOS release run opens a GitHub issue that closes itself once fixed, and the Next release check moves to the 26.11 branches by itself once they exist. |
+| **v65** | Fix: the update reminder reads the packages' date from `nixos-version`, not from the system's label, where it was found only because the label happens to contain the version. The boot test now gives its VM the real version and checks the date the reminder reads. |
+| v64 | A reminder once the system's packages are more than 14 days old: a notification says to run `update` (or to restart, if an update is waiting for one); it installs nothing. CI: a failing Check on `main` or Next NixOS release run opens a GitHub issue that closes itself once fixed, and the Next release check moves to the 26.11 branches by itself once they exist. |
 | v63 | CAC smart cards: pcscd for USB readers, OpenSC loaded into LibreWolf by policy, and `cac-setup` to import the DoD certificates into LibreWolf (downloaded from DISA on the laptop). New README section, hardware-checklist item and boot-test checks. |
 | v62 | Plugging in the backup drive mounts it and backs up straight away, then says when it's safe to unplug. NTFS and exFAT tools (format and repair in Partition Manager). Removed settings that did nothing (PAGER, the Electron Wayland flag, JACK). The installer removes the unused `/etc/nixos` files; `update` protects its build from cleanup; the boot test runs a real backup and writes NTFS and exFAT drives. New desktop screenshot. |
 | v61 | Telegram and ZapZap (WhatsApp) added as Flatpaks from Flathub. |
