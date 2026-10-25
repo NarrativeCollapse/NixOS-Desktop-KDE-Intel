@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 let
   # Default wallpaper for the desktop, the lock screen and the login screen
@@ -28,8 +28,9 @@ in
 
   # Wayland only: no X server and no "Plasma (X11)" session. X11 apps (and
   # Steam) still run through Xwayland, which Plasma enables itself. To bring
-  # the X11 session back, set services.xserver.enable = true and remove
-  # kwin-x11 from the exclusions below.
+  # the X11 session back on 26.05, set services.xserver.enable = true and
+  # remove kwin-x11 from the exclusions below. (26.11 drops the X11 session
+  # and kwin-x11 altogether.)
   services.displayManager.sddm = {
     enable = true;
     wayland.enable = true;
@@ -136,20 +137,24 @@ in
   programs.partition-manager.enable = true;
 
   # Plasma apps and services installed by default that nothing here uses.
-  environment.plasma6.excludePackages = with pkgs.kdePackages; [
-    elisa # music player
-    kwin-x11 # the X11 session's window manager (Wayland only; see above)
-    khelpcenter # KDE Help Center
-    krdp # remote desktop (RDP) server
-    qrca # QR code scanner
-    plasma-keyboard # on-screen touch keyboard (the laptop has no touchscreen)
-    qtvirtualkeyboard
-    # Discover, KDE's software center. Bazaar (a Flatpak, above) is the app
-    # store here; Discover would be a second one, and its update notifier
-    # nags about updates that `update` handles. On NixOS it can't manage
-    # system packages anyway, only Flatpaks and firmware.
-    discover
-  ];
+  environment.plasma6.excludePackages =
+    with pkgs.kdePackages;
+    [
+      elisa # music player
+      khelpcenter # KDE Help Center
+      krdp # remote desktop (RDP) server
+      qrca # QR code scanner
+      plasma-keyboard # on-screen touch keyboard (the laptop has no touchscreen)
+      qtvirtualkeyboard
+      # Discover, KDE's software center. Bazaar (a Flatpak, above) is the app
+      # store here; Discover would be a second one, and its update notifier
+      # nags about updates that `update` handles. On NixOS it can't manage
+      # system packages anyway, only Flatpaks and firmware.
+      discover
+    ]
+    # The X11 session's window manager (Wayland only; see above). Only on
+    # 26.05: 26.11 removed the package, and naming it there is an error.
+    ++ lib.optional (builtins.tryEval kwin-x11).success kwin-x11;
 
   # Plasma turns these on by default. Off here, since nothing on this
   # machine uses them:

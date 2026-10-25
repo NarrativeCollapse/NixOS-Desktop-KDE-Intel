@@ -40,7 +40,9 @@ in
     timeout = 3;
   };
 
-  boot.initrd.systemd.enable = true;
+  # The initrd (early boot, including the disk-password prompt) runs systemd:
+  # NixOS's default since 26.05 and the only option from 26.11, so it isn't
+  # set here (26.11 rejects setting it).
 
   # TRIM through dm-crypt (allowDiscards) is set per host, next to the
   # encrypted disk it applies to: see hosts/shitbox/configuration.nix.
@@ -63,7 +65,6 @@ in
   # Keep kernel and systemd status text off the screen on a normal boot
   # (the Plymouth module adds "splash" itself).
   boot.consoleLogLevel = 3;
-  boot.initrd.verbose = false;
   boot.kernelParams = [
     "quiet"
     "udev.log_level=3"

@@ -412,7 +412,12 @@ does: `update` only moves within the release.
   against unstable (October 2026) found two, both fixed in v57: the
   journal's size limit is now a systemd drop-in file (the journald option
   changed), and Mullvad picks its 26.05 or 26.11 setup automatically (26.11
-  splits the app from the daemon).
+  splits the app from the daemon). The run on 19 October found three more,
+  fixed without changing the 26.05 system: 26.11 removes the old scripted
+  initrd, so `boot.initrd.systemd.enable` (already the default) and
+  `boot.initrd.verbose` (which only it read) are no longer set; and it
+  removes the `kwin-x11` package, so Plasma's exclusion list names it only
+  where it still exists.
 
 **Upgrade day** (once 26.11 is out and the Next release run is green):
 
