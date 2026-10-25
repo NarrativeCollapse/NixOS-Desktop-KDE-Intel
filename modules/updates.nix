@@ -3,11 +3,17 @@
 # Updates happen only when you ask for them. `update` opens a menu (or takes
 # system / flatpak / brew / neovim / firmware / all / rollback as an argument); each
 # part shows what would change and asks before applying anything. Nothing
-# here runs on a timer. The longer scripts are in scripts/ (update.sh,
-# update-system.sh, update-neovim.sh); the short ones are inline below.
+# here installs on its own: the one timer, update-reminder (at the end), only
+# says when updates are overdue. The longer scripts are in scripts/
+# (update.sh, update-system.sh, update-neovim.sh); the short ones are inline
+# below.
 let
   # The config checkout, defined once as nh's flake path (base.nix).
   inherit (config.programs.nh) flake;
+
+  # update-reminder speaks up once the running system's packages are older
+  # than this.
+  overdueDays = 14;
 
   # [s] System: update flake.lock on this laptop, build the result, show
   # which packages change, then apply it now, at the next restart, or not at
@@ -121,4 +127,49 @@ in
     updateFirmware
     updateRollback
   ];
+
+  # A reminder, not an update: once the running system's packages are older
+  # than overdueDays (above), a notification says to run `update`, or to
+  # restart when an update is already set up for the next restart. 15
+  # minutes after login, then once a day while the laptop is on.
+  systemd.user.services.update-reminder = {
+    description = "Remind when system updates are overdue";
+    serviceConfig.Type = "oneshot";
+    path = [
+      pkgs.coreutils
+      pkgs.libnotify
+    ];
+    script = ''
+      # The packages' date is in the system's version: 26.05.20260926.5e2305d
+      # is nixpkgs as it was on 26 September 2026.
+      packages_date() { cut -d. -f3 "$1/nixos-version" 2>/dev/null || true; }
+      running=$(packages_date /run/current-system)
+      if [[ ! $running =~ ^[0-9]{8}$ ]]; then
+        echo "Can't read the packages' date from the system version; nothing to check."
+        exit 0
+      fi
+      age_days=$(( ($(date +%s) - $(date -d "$running" +%s)) / 86400 ))
+      echo "System packages are from $(date -d "$running" +%F), $age_days days ago."
+      [ "$age_days" -gt ${toString overdueDays} ] || exit 0
+      # The system the next boot starts: newer if an update was set for the
+      # next restart.
+      if [[ $(packages_date /nix/var/nix/profiles/system) > $running ]]; then
+        title="Restart to finish updating"
+        body="An update is installed and starts at the next restart. Until then, the running system's packages are $age_days days old."
+      else
+        title="Updates are overdue"
+        body="System packages are $age_days days old. Open a terminal and run: update"
+      fi
+      notify-send --app-name=Updates --icon=system-software-update "$title" "$body"
+    '';
+  };
+  # Counted from login, not the calendar: a calendar timer catching up on a
+  # missed day fires right at login, before Plasma can show anything.
+  systemd.user.timers.update-reminder = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnStartupSec = "15min";
+      OnUnitActiveSec = "1d";
+    };
+  };
 }

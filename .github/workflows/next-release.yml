@@ -2,8 +2,10 @@ name: Next NixOS release
 
 # Runs the same checks as the Check workflow, but against the next NixOS
 # release instead of the one flake.lock pins, so options and packages that
-# change show up here weeks before an upgrade. flake.lock isn't touched.
-# A failure here doesn't block anything; see "Release upgrade" in README.md.
+# change show up here weeks before an upgrade. scripts/next-release.sh picks
+# what "next" means: the next release's own branches once they exist,
+# nixos-unstable until then. flake.lock isn't touched. A failure here opens
+# an issue but blocks nothing; see "Release upgrade" in README.md.
 on:
   schedule:
     - cron: "23 6 * * 1" # Mondays, 06:23 UTC
@@ -11,27 +13,25 @@ on:
 
 permissions:
   contents: read
+  issues: write # a failure opens an issue (.github/actions/ci-issue)
 
 concurrency:
   group: next-release
   cancel-in-progress: true
-
-env:
-  # What "next release" means. Until NixOS 26.11 branches (November 2026),
-  # it's unstable, which 26.11 is cut from: nixpkgs nixos-unstable, Home
-  # Manager master, plasma-manager's latest commit. Once it branches, use
-  # nixpkgs/nixos-26.11 and home-manager/release-26.11.
-  NEXT: >-
-    --no-write-lock-file
-    --override-input nixpkgs github:NixOS/nixpkgs/nixos-unstable
-    --override-input home-manager github:nix-community/home-manager
-    --override-input plasma-manager github:nix-community/plasma-manager
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
+      # $NEXT: the --override-input arguments for the next release. The run's
+      # summary page shows which branches it used.
+      - name: Pick the next release
+        run: |
+          next=$(scripts/next-release.sh)
+          echo "NEXT=$next" >> "$GITHUB_ENV"
+          echo "Checked against: \`$next\`" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: ./.github/actions/setup-nix
 
@@ -44,3 +44,14 @@ jobs:
 
       - name: Build the system
         run: nix build --print-build-logs --no-link $NEXT .#nixosConfigurations.shitbox.config.system.build.toplevel
+
+      - name: Report in an issue
+        if: always()
+        uses: ./.github/actions/ci-issue
+        with:
+          status: ${{ job.status }}
+          hint: >-
+            Something in the next NixOS release breaks this config. The laptop
+            is unaffected: fix it before the upgrade (see "Release upgrade" in
+            README.md). Unstable sometimes breaks on its own for a few days,
+            so look at why it failed before changing anything.

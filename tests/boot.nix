@@ -150,6 +150,21 @@
         )
         assert user_stop.strip() == "DefaultTimeoutStopUSec=45s", user_stop
 
+    with subtest("Update reminder reads the packages' date (update-reminder)"):
+        user = "systemctl --user --machine=austin@.host"
+        machine.succeed(f"{user} is-active update-reminder.timer")
+        # Runs now instead of 15 minutes after login; fails if the
+        # notification (sent when flake.lock is over two weeks old) does.
+        machine.succeed(f"{user} start update-reminder.service")
+        # The date is the third part of the version (26.05.20260926.5e2305d).
+        day = machine.succeed("cut -d. -f3 /run/current-system/nixos-version").strip()
+        day = f"{day[:4]}-{day[4:6]}-{day[6:]}"
+        machine.wait_until_succeeds(
+            "journalctl -o cat _SYSTEMD_USER_UNIT=update-reminder.service"
+            f" | grep -qF 'System packages are from {day}'",
+            timeout=30,
+        )
+
     with subtest("Plugging in the backup drive backs up /home (backup-on-plug)"):
         # Set up the password and format the drive as backup-setup does,
         # then "plug it in" (formatting alone doesn't start a backup).

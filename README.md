@@ -4,7 +4,7 @@ Austin's flake-based NixOS 26.05 + Home Manager config for **shitbox**, an
 HP Laptop 14-ep0xxx (Intel Gen12 graphics, LUKS-encrypted NVMe) running
 Plasma 6.
 
-**Current version: v63** (git tag `v63`). See [Versions](#versions).
+**Current version: v64** (git tag `v64`). See [Versions](#versions).
 
 <img src="docs/screenshots/desktop-v62.jpg" alt="The desktop: the gas-masks wallpaper, Konsole showing the welcome banner with the NixOS logo beside it, and a Breeze Dark taskbar docked along the bottom edge with the white NixOS snowflake as the app launcher, Dolphin, Google Chrome (pinned, tooltip shown) and Konsole, and a 24-hour clock with the date as 13 Oct 2026" width="820">
 
@@ -96,7 +96,8 @@ Everything below is reference: read the part you need.
   at shutdown is given 45 seconds instead of 90, as on Fedora.
 - **Updates:** nothing updates on its own. `update` checks the system,
   Flatpak apps, Homebrew tools and Neovim plugins, shows what would change,
-  and applies it only when you say yes (see [Updates](#updates)).
+  and applies it only when you say yes, and a notification reminds you
+  once the system's packages are two weeks old (see [Updates](#updates)).
 
 ## What protects what
 
@@ -107,7 +108,8 @@ isn't in the table, nothing covers it yet.
 | --- | --- | --- |
 | Laptop lost or stolen | Full-disk encryption (LUKS2); the boot-menu editor is locked, so nobody can boot a root shell from it | `hosts/shitbox/`, `modules/hardware.nix` |
 | Losing your files (dead SSD, deletion, theft) | Restic backups of `/home` to a USB drive, as soon as it's plugged in and daily while it stays connected, with a warning when they go stale; smartd warns when the SSD starts failing | `modules/backup.nix`, `modules/hardware.nix` |
-| A bad update | Updates only when you choose, with a preview; the last 10 versions stay in the boot menu to go back to; CI builds and boot-tests every change first | [Updates](#updates), [CI](#ci) |
+| A bad update | Updates only when you choose, with a preview; the last 10 versions stay in the boot menu to go back to; CI builds and boot-tests every change first, and a failure opens a GitHub issue | [Updates](#updates), [CI](#ci) |
+| Falling behind on security fixes | A notification once the running system's packages are more than 14 days old | [Updates](#updates) |
 | The system breaking with no update (crash, full disk) | oomd closes a runaway app before the desktop freezes; Nix frees store space when the disk runs low; capped journal; Memtest86+ for suspect RAM | `modules/hardware.nix`, `modules/base.nix` |
 | A tampered or changed package | Every input pinned in `flake.lock` by hash; packages come from the signed NixOS binary cache | `flake.lock` |
 | Hostile Wi-Fi | Firewall with only mDNS open; ICMP redirects and source routing ignored; Mullvad VPN | `modules/network.nix` |
@@ -132,6 +134,7 @@ wallpapers/                      extra wallpapers installed system-wide
 CLAUDE.md                        rules for AI-assisted changes (checks, versioning)
 docs/screenshots/                images used in this README
 .github/actions/setup-nix/       CI setup shared by the workflows (disk space + Nix)
+.github/actions/ci-issue/        CI: a failure opens a GitHub issue, a pass closes it
 .github/workflows/
   check.yml                      CI: nix flake check (incl. VM boot test), no evaluation
                                  warnings, full system build
@@ -157,7 +160,8 @@ modules/
   backup.nix                     restic job for /home (needs one-time setup)
   homebrew.nix                   Homebrew PATH, completions, `brew-update`
   notifications.nix              `notify-desktop` + `notify-failure@`: desktop alerts from services
-  updates.nix                    `update` menu: system, Flatpak, Homebrew, Neovim, firmware
+  updates.nix                    `update` menu: system, Flatpak, Homebrew, Neovim, firmware;
+                                 the overdue-updates reminder
   smartcard.nix                  CAC readers: pcscd, OpenSC in LibreWolf, `cac-setup`
 home/austin/home.nix             zsh, starship, git
 home/austin/bling.nix            Bazzite-style MOTD, fastfetch, CLI tools + aliases
@@ -177,6 +181,7 @@ scripts/                         the longer shell scripts, as plain bash (see be
   lib/confirm.sh                 the shared yes/no prompt
   bump-version.py                version bump used by `update` and the update workflow
   check-eval-warnings.sh         CI: fail if evaluating the system prints a warning
+  next-release.sh                CI: which branches "the next NixOS release" means now
 ```
 
 **Where things go.** Each module covers one topic, and anything tied to a
@@ -304,8 +309,9 @@ linting because regenerating it would undo any changes.
 QEMU VM and checks that it reaches the desktop: NetworkManager, DNS,
 Mullvad, mDNS, oomd, the backup timer and Home Manager are running,
 Plasma logs in for austin, the taskbar script has run, the Plasma settings
-(Magic Lamp, power profiles) are written, and `update`,
-`nixos-motd` and the other commands work, with the right version label.
+(Magic Lamp, power profiles) are written, the update reminder reads the
+packages' date, and `update`, `nixos-motd` and the other commands work,
+with the right version label.
 It also plugs in a blank virtual disk as the backup drive and checks that
 a real backup of `/home/austin` runs by itself, and formats another as NTFS
 and exFAT and writes to each. Only the VM's differences are overridden (no
@@ -382,9 +388,28 @@ changes anything.
 Still scheduled, because none of them change what's installed: nh's weekly
 cleanup of old generations, weekly store deduplication, the daily backup,
 fwupd's refresh of firmware metadata (firmware itself only installs through
-`update` [w] or `fwupdmgr update`), and tldr's page cache. Nothing pops up
-"updates available" notifications either: Discover, which would, isn't
-installed.
+`update` [w] or `fwupdmgr update`), and tldr's page cache. The one
+notification about updates is the reminder below; Discover, which would
+announce every available update, isn't installed.
+
+### Overdue-updates reminder
+
+Once the running system's packages are more than 14 days old, a
+notification says **Updates are overdue** and to run `update`. If an
+update is already installed for the next restart ([r] above), it says
+**Restart to finish updating** instead. It checks 15 minutes after login
+and once a day after that, and never installs anything itself.
+
+The age comes from the system's version: `26.05.20260926.5e2305d` means
+NixOS packages as of 26 September 2026, so applying `update` [s] resets it.
+NixOS publishes new packages every few days; when its channel stalls for
+longer (rare, while a failing build is fixed), `update` finds nothing
+newer and the reminder keeps coming until it moves.
+
+- Change the threshold with `overdueDays` at the top of `modules/updates.nix`.
+- Test it: `systemctl --user start update-reminder`; then
+  `journalctl --user -u update-reminder` shows the date it read.
+- Silence it until the next login: `systemctl --user stop update-reminder.timer`.
 
 ## Release upgrade
 
@@ -399,12 +424,18 @@ does: `update` only moves within the release.
 - **The Next NixOS release workflow** (`.github/workflows/next-release.yml`,
   every Monday and by hand from the Actions tab) runs the same checks as
   CI, VM boot test included, against the next release instead of the one
-  `flake.lock` pins. Until 26.11 branches (November) "next" means
-  nixos-unstable, which 26.11 is cut from. A renamed option or a removed
-  package fails there weeks ahead, while the laptop is unaffected.
-  Unstable occasionally breaks for reasons that never reach a release
-  (a package failing to build for a few days), so look at why a run failed
-  before acting on it.
+  `flake.lock` pins. A renamed option or a removed package fails there
+  weeks ahead, while the laptop is unaffected, and a failure opens a
+  GitHub issue (see [CI](#ci)). It works out the target itself
+  (`scripts/next-release.sh`, reading the release from `flake.nix`): the
+  next release's own branches (nixpkgs `nixos-26.11` and Home Manager
+  `release-26.11`) as soon as both exist, a few weeks before the release,
+  and until then nixos-unstable and Home Manager master, which 26.11 is cut
+  from. Each run's summary page says which it used. Unstable occasionally
+  breaks for reasons that never reach a release (a package failing to
+  build for a few days), so look at why a run failed before acting on it.
+  To run the same checks on the laptop (it downloads the next release's
+  packages, several GB): `nix flake check $(scripts/next-release.sh)`.
 - **CI fails on evaluation warnings.** NixOS warns about a renamed or
   deprecated option for a release before making it an error, so a warning
   today is a broken build at the next upgrade.
@@ -438,8 +469,8 @@ Leave `system.stateVersion` and `home.stateVersion` at 25.11: they record
 the release the laptop was installed with, not the one it runs.
 
 Afterwards, tidy up: in `modules/network.nix` keep just
-`gui.enable = true;` for Mullvad, and point the Next release workflow back
-at nixos-unstable (for 27.05).
+`gui.enable = true;` for Mullvad. The Next release workflow moves on to
+27.05 by itself, since it reads the current release from `flake.nix`.
 
 ## Hardware checklist
 
@@ -1049,7 +1080,8 @@ Four GitHub Actions workflows live in `.github/workflows/`:
   the repository's Actions tab. A newer push cancels an older run still
   in progress.
 - **Next NixOS release** (Mondays, or by hand): the same checks against
-  the next NixOS release, without touching `flake.lock`; see
+  the next NixOS release (26.11's branches once they exist, unstable until
+  then), without touching `flake.lock`; see
   [Release upgrade](#release-upgrade). A failure there blocks nothing.
 - **Build installer ISO** (only when run by hand from the Actions tab):
   builds the installer ISO and offers it as a download on the run's page
@@ -1065,6 +1097,18 @@ Four GitHub Actions workflows live in `.github/workflows/`:
   shows "action required": GitHub holds workflow runs on pull requests the
   Actions bot opens until you click **Approve and run**. That's optional,
   since the same check and build already passed before the PR was opened.
+
+**Failures open an issue.** When Check fails on `main`, or Next NixOS
+release fails, the workflow opens a GitHub issue ("Check is failing",
+"Next NixOS release is failing") that mentions you, so it reaches GitHub's
+notifications and, with the default notification settings, your email.
+Each further failure adds a comment, and the issue closes itself once the
+workflow passes again. Pull requests (their own page shows the result) and
+cancelled runs are left out. GitHub's own failure emails don't cover this:
+for a scheduled run they go only to whoever last edited the schedule, and
+the commits here come from an address with no GitHub account, so they
+reached no one (the 19 October Next release failure went unnoticed that
+way). The shared step is `.github/actions/ci-issue/action.yml`.
 
 **Nothing slow is compiled.** Everything heavy downloads prebuilt from
 cache.nixos.org; CI (and the laptop) only build small config files. The
@@ -1105,7 +1149,8 @@ top of this README doesn't match it.
 
 | Version | Highlights |
 | --- | --- |
-| **v63** | CAC smart cards: pcscd for USB readers, OpenSC loaded into LibreWolf by policy, and `cac-setup` to import the DoD certificates into LibreWolf (downloaded from DISA on the laptop). New README section, hardware-checklist item and boot-test checks. |
+| **v64** | A reminder once the system's packages are more than 14 days old: a notification says to run `update` (or to restart, if an update is waiting for one); it installs nothing. CI: a failing Check on `main` or Next NixOS release run opens a GitHub issue that closes itself once fixed, and the Next release check moves to the 26.11 branches by itself once they exist. |
+| v63 | CAC smart cards: pcscd for USB readers, OpenSC loaded into LibreWolf by policy, and `cac-setup` to import the DoD certificates into LibreWolf (downloaded from DISA on the laptop). New README section, hardware-checklist item and boot-test checks. |
 | v62 | Plugging in the backup drive mounts it and backs up straight away, then says when it's safe to unplug. NTFS and exFAT tools (format and repair in Partition Manager). Removed settings that did nothing (PAGER, the Electron Wayland flag, JACK). The installer removes the unused `/etc/nixos` files; `update` protects its build from cleanup; the boot test runs a real backup and writes NTFS and exFAT drives. New desktop screenshot. |
 | v61 | Telegram and ZapZap (WhatsApp) added as Flatpaks from Flathub. |
 | v60 | Minimized windows pour into the taskbar with Magic Lamp, the macOS-style genie effect, instead of Squash (a KWin built-in, set through plasma-manager). The boot test checks the setting; README screenshot of the effect. |

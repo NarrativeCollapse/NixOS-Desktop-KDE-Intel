@@ -10,8 +10,10 @@ warnings. `nix flake check` includes the VM boot test (`tests/boot.nix`,
 needs KVM, a few minutes). CI (`.github/workflows/check.yml`) runs the same
 check, `scripts/check-eval-warnings.sh` and a full system build on every
 push; `next-release.yml` runs them weekly against the next NixOS release
-(see "Release upgrade" in README.md). Changes must evaluate on both
-releases until the upgrade.
+(see "Release upgrade" in README.md; `scripts/next-release.sh` picks the
+branches). Changes must evaluate on both releases until the upgrade. A
+failing Check on main or Next release run opens a GitHub issue titled
+"<workflow> is failing", which closes itself once the workflow passes.
 
 ## Versioning (keep this up to date)
 
