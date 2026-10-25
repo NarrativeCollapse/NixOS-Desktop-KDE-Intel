@@ -138,6 +138,9 @@
             (import ./tests/boot.nix {
               modules = shitboxModules;
               inherit version;
+              # The real system's version suffix (nixpkgs' date and commit,
+              # which lib.nixosSystem adds and the test framework doesn't).
+              inherit (self.nixosConfigurations.shitbox.config.system.nixos) versionSuffix;
             })
           ];
         };
